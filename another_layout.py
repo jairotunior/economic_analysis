@@ -6,6 +6,8 @@ from datetime import date, timedelta, datetime
 from full_fred.fred import Fred
 import quandl
 
+from pathlib import Path
+
 import holoviews as hv
 import bokeh
 from bokeh.models.callbacks import CustomJS
@@ -22,6 +24,11 @@ import random
 
 import param
 import panel as pn
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+fred_credentials = os.path.join(BASE_DIR, "src", "api_fred.txt")
+fred = Fred(fred_credentials)
 
 pn.extension(template='bootstrap')
 
@@ -102,8 +109,6 @@ def get_fred_dataset(serie_id, columns=None, rename_column=None):
 
     return data
 
-
-fred = Fred('api_fred.txt')
 
 category_list = ['US IR and Yields', 'Indicator', 'Money Markets', 'US Credit', 'Inventories', 'US Federal Debt',
                  'Index', 'US Economy']
@@ -284,14 +289,13 @@ def combine_with_releases(df_base, df_releases, prefix_column='custom'):
 
     return df_concat
 
-
 df_list = []
 df_result = None
 yield_columns = ['3 MO', '2 YR', '5 YR', '7 YR', '10 YR', '20 YR', '30 YR']
 
 download_data = False
 
-if not os.path.exists("dataset/dataset_complete.csv") or download_data:
+if not os.path.exists(os.path.join(BASE_DIR, "src", "dataset", "dataset_complete.csv")) or download_data:
     for k in list_ts:
         tick = k['tick']
         print(tick)
@@ -316,10 +320,10 @@ if not os.path.exists("dataset/dataset_complete.csv") or download_data:
     df_result = df_result.reset_index()
 
     # df_result.to_csv("dataset/dataset_complete.csv")
-    df_result.to_pickle("dataset/dataset_complete.pkl")
+    df_result.to_pickle(os.path.join(BASE_DIR, "src", "dataset", "dataset_complete.pkl"))
 else:
     # df_result = pd.read_csv("dataset/dataset_complete.csv")
-    df_result = pd.read_pickle("dataset/dataset_complete.pkl")
+    df_result = pd.read_pickle(os.path.join(BASE_DIR, "src", "dataset", "dataset_complete.pkl"))
 
 start_date = df_result.date.min()
 end_date = df_result.date.max()
@@ -336,7 +340,7 @@ yield_source = ColumnDataSource(data=df_yields)
 main_source = ColumnDataSource(df_result)
 
 # ****************************************** Global Variables ***************************
-# analist_list format
+# analist_dict format
 # {"Default": [{'tick': "", "category": "", "name": "", "freq": ""},]}
 #
 #
@@ -344,12 +348,64 @@ analisis_list = []
 analisis_dict = {}
 fig_dict = {}
 
+start_date = None
+end_date = None
+x_data_range = None
+
+
 fig_list = []
 horizontal_hover_tool_list = []
 vertical_hover_tool_list = []
 
 tools = ['xpan', 'reset', 'save', 'xwheel_zoom', 'box_select', 'lasso_select']
 crosshair = CrosshairTool(dimensions="both")
+
+
+# ************************************** Load Analysis *********************************************
+df_analysis = pd.DataFrame({"name": ["Analisis 1", "Analisis 2", "Analisis 1"], "serie": ['GDP', 'PCE', 'GDP'], 'source': ['fred', 'fred', 'fred']})
+analisis_list = df_analysis['name'].unique()
+
+for a in analisis_list:
+    analisis_dict[a] = {}
+    analisis_dict[a]['series'] = []
+    analisis_dict[a]['figs'] = []
+    analisis_dict[a]['datasource'] = None
+    df_series = df_analysis[df_analysis['name'] == a]
+
+    list_df_analisis = []
+
+    for i, s in df_series.iterrows():
+        tick = s['serie']
+        source = s['source']
+
+        # Add Info Series in List
+        analisis_dict[a]['series'].append({"name": tick, "source": source})
+
+        df = None
+
+        # Es una funcion custom
+        if callable(source):
+            df = source()
+        elif source == 'fred':
+            df = get_fred_dataset(tick, rename_column=tick)
+        elif source == 'quandl':
+            df = get_quandl_dataset(tick)
+
+        df.fillna(method='ffill', inplace=True)
+        list_df_analisis.append(df)
+
+    df_aux = pd.concat(df_list, axis=1)
+    df_aux = df_aux.reset_index()
+
+    analisis_dict[a] = df_aux
+
+    analisis_dict[a]['start_date'] = df_aux.date.min()
+    analisis_dict[a]['end_date'] = df_aux.date.max()
+
+    analisis_dict[a]['x_data_range'] = DataRange1d(start=analisis_dict[a]['start_date'], end=analisis_dict[a]['end_date'])
+
+    analisis_dict[a]['datasource'] = ColumnDataSource(analisis_dict[a])
+
 
 # ****************************************** Create Figures *******************************
 """
@@ -449,7 +505,7 @@ def point_event_callback(event):
     except:
         pass
 
-
+"""
 for k, fig_lst in fig_dict.items():
     for d in fig_lst:
         f = d['figure']
@@ -461,7 +517,7 @@ for k, fig_lst in fig_dict.items():
             # f.on_event(Tap, point_event_callback)
             f.on_event('tap', point_event_callback)
             # f.on_event("mousemove", point_event_callback)
-
+"""
 
 
 def enable_vertical_hovertool_callback(event):
@@ -472,7 +528,7 @@ def enable_vertical_hovertool_callback(event):
 
 # ************************************* Methods ***********************************
 
-def create_ts(ts, tab_id):
+def create_ts(ts, tab_id, x_data_range=None):
     tick = ts['tick']
     title = ts['name']
     category = ts['category']
@@ -497,7 +553,7 @@ def create_ts(ts, tab_id):
     else:
         df_filter = df_result[pd.notnull(df_result[tick])]
 
-        x_range = DataRange1d(start=df_filter.date.min(), end=df_filter.date.max())
+        #x_range = DataRange1d(start=df_filter.date.min(), end=df_filter.date.max())
 
         if freq != 'D':
             view = CDSView(source=main_source, filters=[IndexFilter(df_filter.index)])
@@ -516,7 +572,7 @@ def create_ts(ts, tab_id):
                                                        tooltip_format=tooltip_format, htooltip=True, vtooltip=False,
                                                        tools=tools)
 
-        fig.x_range = x_range
+        #fig.x_range = x_range
 
     # fig_list.append({'figure': fig, 'category': category, 'title': title, 'tick': tick})
     fig_dict[tab_id].append({'figure': fig, 'category': category, 'title': title, 'tick': tick})
@@ -542,7 +598,7 @@ def add_sync_crosshair(fig):
 
 
 def add_recession_info(fig):
-    df_business_cycle = pd.read_csv("dataset/business_cycle.csv")
+    df_business_cycle = pd.read_csv(os.path.join(BASE_DIR, "src", "dataset", "business_cycle.csv"))
     df_business_cycle['start'] = pd.to_datetime(df_business_cycle['start'], format="%d/%m/%Y")
     df_business_cycle['end'] = pd.to_datetime(df_business_cycle['end'], format="%d/%m/%Y")
 
@@ -597,9 +653,13 @@ def get_tabs():
 
 
 class SeriesForm(param.Parameterized):
+    """
     autocomplete_search_serie = pn.widgets.AutocompleteInput(
         name='Search Serie', options=get_name_list_search(),
-        placeholder='Ticker or Serie Name', restrict=True, case_sensitive=False)
+        placeholder='Ticker or Serie Name', case_sensitive=False)
+    """
+
+    autocomplete_search_serie = pn.widgets.TextInput(name='Search Serie', placeholder='Ticker or Serie Name')
 
     """
     start_datetime_picker = pn.widgets.DatetimePicker(name='Start Date',
@@ -616,6 +676,7 @@ class SeriesForm(param.Parameterized):
     #action_add_serie = param.Action(lambda x: x.param.trigger('action_add_serie'), label='Add Serie')
     #action_add_analysis = param.Action(lambda x: x.param.trigger('action_add_analysis'), label='Add Analysis')
 
+    button_open_modal = pn.widgets.Button(name='Add Serie', width_policy='fit', height_policy='fit', button_type='primary')
     button_add_serie = pn.widgets.Button(name='Add Serie', width_policy='fit', height_policy='fit', button_type='primary')
     button_create_analisis = pn.widgets.Button(name='New Analysis', button_type='success')
 
@@ -624,6 +685,7 @@ class SeriesForm(param.Parameterized):
 
     action_update_tabs = param.Action(lambda x: x.param.trigger('action_update_tabs'), label='Update Tabs')
     action_update_alerts = param.Action(lambda x: x.param.trigger('action_update_alerts'), label='Update Alerts')
+    action_update_search_results = param.Action(lambda x: x.param.trigger('action_update_search_results'), label='Update Search Result')
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -632,9 +694,11 @@ class SeriesForm(param.Parameterized):
 
         self.button_add_serie.param.watch(self.add_serie, 'value')
         self.button_create_analisis.param.watch(self.add_analysis, 'value')
+        self.button_open_modal.param.watch(self.open_modal, 'value')
+        self.autocomplete_search_serie.param.watch(self._update_countries, 'value')
 
         self.alerts = []
-
+        self.search_result = []
         """
         self.view = pn.Param(self,
             widgets = {
@@ -647,6 +711,22 @@ class SeriesForm(param.Parameterized):
 
     #def disable_end_date(self, event):
     #    self.end_datetime_picker.disabled = event.new
+
+    def _update_countries(self, event):
+        if event.new != "":
+            series = fred.search_for_series([str(event.new)], limit=20)
+            self.search_result = []
+
+            for s in series['seriess']:
+                t = {"name": s['title'], "id": s['id'], 'observation_start': s['observation_start'],
+                                       'observation_end': s['observation_end'], 'frequency': s['frequency'], 'units': s['units'],
+                                       'seasonal_adjustment': s['seasonal_adjustment'], 'notes': ''}
+                self.search_result.append(t)
+
+            self.param.trigger('action_update_search_results')
+
+    def open_modal(self, event):
+        bootstrap.open_modal()
 
     def add_serie(self, event):
         serie_name = self.autocomplete_search_serie.value.split("-")
@@ -671,13 +751,31 @@ class SeriesForm(param.Parameterized):
 
         self.param.trigger('action_update_tabs')
 
+    def add_serie_buttom(self, event):
+        serie_id = event.obj.name
+        df_serie = fred.get_series_df(series_id=serie_id)
+        print(df_serie.head())
+        """
+        time.sleep(2)
+        tab_id = analisis_list[0]
+        fg = create_ts(list_ts[pos[0]], tab_id)
+        add_recession_info(fg)
+        add_current_time_span(fg)
+        add_sync_crosshair(fg)
+
+        self.alerts.append("Seleccione una serie de tiempo valida.")
+        self.param.trigger('action_update_alerts')
+
+        self.param.trigger('action_update_tabs')
+        """
+
     def add_analysis(self, event):
         time.sleep(2)
         name = "Default" + str(random.randint(0, 1000))
         analisis_list.append(name)
         fig_dict[name] = []
 
-        self.param.trigger('action_update_tabs')
+        #self.param.trigger('action_update_tabs')
 
     @param.depends('action_update_alerts', watch=False)
     def get_alerts(self):
@@ -697,8 +795,26 @@ class SeriesForm(param.Parameterized):
 
         return self.tabs
 
+    @param.depends('action_update_search_results', watch=False)
+    def get_search_results(self):
+        rows = []
+        description = """
+        **{}**\n
+        {} to {}\n
+        {}\n
+        {}
+        """
+
+        for r in self.search_result:
+            button_select = pn.widgets.Button(name=r['id'])
+            button_select.param.watch(self.add_serie_buttom, 'value')
+            rows.append(pn.Card(pn.Column(description.format(r['name'], r['observation_start'], r['observation_end'], r['frequency'], r['notes']), button_select)))
+        return pn.Column("**Search Results:**", pn.GridBox(*rows, ncols=4)) if len(rows) > 0 else None
+
+
     def __repr__(self, *_):
         return "Value"
+
 
 series_form = SeriesForm()
 
@@ -706,14 +822,30 @@ series_form = SeriesForm()
 alerts = pn.Row(pn.panel(series_form.get_alerts, width=300))
 container = pn.Row(pn.panel(series_form.get_tabs, width=300))
 
+description = """
+Every pane, widget and layout provides the **`loading` parameter**. When set to `True` a spinner will overlay the panel and indicate that the panel is currently loading. When you set `loading` to false the spinner is removed. 
 
-bootstrap.sidebar.append(series_form.autocomplete_search_serie)
+Using the `pn.extension` or by setting the equivalent parameters on `pn.config` we can select between different visual styles and colors for the loading indicator.
+
+```python
+pn.extension(loading_spinner='dots', loading_color='#00aa41')
+```
+
+We can enable the loading indicator for reactive functions annotated with `depends` or `bind` globally using:
+
+```python
+pn.param.ParamMethod.loading_indicator = True
+```
+"""
+
+bootstrap.sidebar.append(series_form.button_open_modal)
+#bootstrap.sidebar.append(series_form.autocomplete_search_serie)
 #bootstrap.sidebar.append(series_form.start_datetime_picker)
 #bootstrap.sidebar.append(series_form.end_datetime_picker)
 bootstrap.sidebar.append(series_form.select_proccessing)
 #bootstrap.sidebar.append(series_form.checkbox_with_end_date)
 #bootstrap.sidebar.append(series_form.view)
-bootstrap.sidebar.append(series_form.button_add_serie)
+
 bootstrap.sidebar.append(series_form.button_create_analisis)
 
 
@@ -760,8 +892,9 @@ analitics = pn.Row(*trend_list)
 
 bootstrap.main.append(analitics)
 
-#bootstrap.modal.append(pn.Row(gauge))
+bootstrap.modal.append(pn.Column(pn.Row(series_form.autocomplete_search_serie), series_form.get_search_results))
 
+bootstrap.main.append(description)
 bootstrap.main.append(alerts)
 bootstrap.main.append(container)
 
