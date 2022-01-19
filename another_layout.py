@@ -352,7 +352,7 @@ tools = ['xpan', 'reset', 'save', 'xwheel_zoom', 'box_select', 'lasso_select']
 crosshair = CrosshairTool(dimensions="both")
 
 # ****************************************** Create Figures *******************************
-
+"""
 for k, ts in analisis_dict.items():
     # Crea nueva key en el diccionario
     fig_dict[k] = []
@@ -409,35 +409,12 @@ for k, ts in analisis_dict.items():
             horizontal_hover_tool_list.append(h_hovertool)
         if v_hovertool:
             vertical_hover_tool_list.append(v_hovertool)
+"""
 
-# *********************************** Business Cycle *********************************
-df_business_cycle = pd.read_csv("dataset/business_cycle.csv")
-df_business_cycle['start'] = pd.to_datetime(df_business_cycle['start'], format="%d/%m/%Y")
-df_business_cycle['end'] = pd.to_datetime(df_business_cycle['end'], format="%d/%m/%Y")
-
-recession_list = []
-
-for i, row in df_business_cycle.iterrows():
-    r = BoxAnnotation(left=row['start'], right=row['end'], fill_color='#009E73', fill_alpha=0.1)
-    recession_list.append(r)
 
 # Use js_link to connect button active property to glyph visible property
 toggle1 = Toggle(label="Show Depression / Recession", button_type="success", active=True)
 
-for r in recession_list:
-    for k, fig_lst in fig_dict.items():
-        for d in fig_lst:
-            f = d['figure']
-            tick = d['tick']
-
-            if tick in ['USTREASURY/YIELD', ]:
-                continue
-
-            f.add_layout(r)
-            f.add_layout(r)
-            f.add_layout(r)
-            f.add_layout(r)
-            toggle1.js_link('active', r, 'visible')
 
 # for d in fig_list:
 #    f = d['figure']
@@ -486,42 +463,6 @@ for k, fig_lst in fig_dict.items():
             # f.on_event("mousemove", point_event_callback)
 
 
-# *************************************** Configure Layout ********************************************
-
-def layout_row(list_figs, figs_per_row):
-    list_result = []
-    current_list = []
-
-    for i, f in enumerate(list_figs, start=1):
-        if i % figs_per_row == 0:
-            current_list.append(f)
-            list_result.append(current_list)
-            current_list = []
-        else:
-            current_list.append(f)
-
-    if len(current_list) > 0:
-        list_result.append(current_list)
-
-    return list_result
-
-
-tabs = None
-tuplas = []
-
-for k in analisis_list:
-    fig_lst = fig_dict[k]
-    figs = [pn.Card(f['figure'], title=f['title']) for f in fig_lst]
-    tuplas.append((k, pn.Column(*[pn.Row(*c) for c in layout_row(figs, 3)])))
-
-cross_selector = pn.widgets.CrossSelector(name='Fruits', value=[], options=df_result.columns.to_list())
-
-tuplas.append(('Analysis', cross_selector))
-
-tabs = pn.Tabs(*tuplas, closable=True)
-
-
-# *************************************** Render and Initialize Server ********************************
 
 def enable_vertical_hovertool_callback(event):
     for d in fig_list:
@@ -588,6 +529,18 @@ def create_ts(ts, tab_id):
     return fig
 
 
+def add_current_time_span(fig):
+    fig.renderers.extend([current_time])
+    fig.js_on_event('tap', callback_figs)
+    # f.on_event(Tap, point_event_callback)
+    fig.on_event('tap', point_event_callback)
+    # f.on_event("mousemove", point_event_callback)
+
+
+def add_sync_crosshair(fig):
+    fig.add_tools(crosshair)
+
+
 def add_recession_info(fig):
     df_business_cycle = pd.read_csv("dataset/business_cycle.csv")
     df_business_cycle['start'] = pd.to_datetime(df_business_cycle['start'], format="%d/%m/%Y")
@@ -603,7 +556,23 @@ def add_recession_info(fig):
         fig.add_layout(r)
         toggle1.js_link('active', r, 'visible')
 
-    df_business_cycle.close()
+
+def layout_row(list_figs, figs_per_row):
+    list_result = []
+    current_list = []
+
+    for i, f in enumerate(list_figs, start=1):
+        if i % figs_per_row == 0:
+            current_list.append(f)
+            list_result.append(current_list)
+            current_list = []
+        else:
+            current_list.append(f)
+
+    if len(current_list) > 0:
+        list_result.append(current_list)
+
+    return list_result
 
 
 def get_tabs():
@@ -611,10 +580,11 @@ def get_tabs():
     tuplas = []
 
     for k in analisis_list:
-        print(k)
         fig_lst = fig_dict[k]
         figs = [pn.Card(f['figure'], title=f['title']) for f in fig_lst]
-        tuplas.append((k, pn.Column(*[pn.Row(*c) for c in layout_row(figs, 3)])))
+        #tuplas.append((k, pn.Column(*[pn.Row(*c) for c in layout_row(figs, 3)])))
+        tuplas.append((k, pn.GridBox(*figs, ncols=3)))
+
 
     cross_selector = pn.widgets.CrossSelector(name='Fruits', value=[], options=df_result.columns.to_list())
 
@@ -626,12 +596,6 @@ def get_tabs():
 
 
 
-#watcher = checkbox_with_end_date.param.watch(checkbox_end_date_callback, ['value'], onlychanged=False)
-
-#button_add_serie.param.watch(add_serie_click_button, 'value')
-#button_create_analisis.param.watch(add_analysis_click_button, 'value')
-
-## **********************************
 class SeriesForm(param.Parameterized):
     autocomplete_search_serie = pn.widgets.AutocompleteInput(
         name='Search Serie', options=get_name_list_search(),
@@ -652,7 +616,7 @@ class SeriesForm(param.Parameterized):
     #action_add_serie = param.Action(lambda x: x.param.trigger('action_add_serie'), label='Add Serie')
     #action_add_analysis = param.Action(lambda x: x.param.trigger('action_add_analysis'), label='Add Analysis')
 
-    button_add_serie = pn.widgets.Button(name='Add Serie', button_type='primary')
+    button_add_serie = pn.widgets.Button(name='Add Serie', width_policy='fit', height_policy='fit', button_type='primary')
     button_create_analisis = pn.widgets.Button(name='New Analysis', button_type='success')
 
     #action_add_serie = param.Action(label='Add Serie')
@@ -696,6 +660,8 @@ class SeriesForm(param.Parameterized):
                     tab_id = analisis_list[0]
                     fg = create_ts(list_ts[pos[0]], tab_id)
                     add_recession_info(fg)
+                    add_current_time_span(fg)
+                    add_sync_crosshair(fg)
             else:
                 self.alerts.append("Seleccione una serie de tiempo valida.")
                 self.param.trigger('action_update_alerts')
@@ -736,25 +702,10 @@ class SeriesForm(param.Parameterized):
 
 series_form = SeriesForm()
 
-"""
-component = pn.Column(
-    pn.Row(
-        pn.Column(pn.panel(series_form, show_name=False, margin=0,
-                           widgets={"action": {"button_type": "primary"}, "number": {"disabled": True}}),
-                  '**Click the button** to trigger an update in the output.'),
-        pn.panel(series_form.get_number, width=300), max_width=600)
-)
-"""
 
-
-# tabs = pn.Tabs(*tuplas, pn.panel(pn.bind(click_button, button_add_serie), loading_indicator=True))
-#container = pn.Row(tabs)
 alerts = pn.Row(pn.panel(series_form.get_alerts, width=300))
 container = pn.Row(pn.panel(series_form.get_tabs, width=300))
 
-
-#bootstrap.sidebar.append(pn.panel(series_form, show_name=False, margin=0,
-#                           widgets={"action_add_serie": {"button_type": "primary"}, "action_add_analysis": {"button_type": "danger"}}))
 
 bootstrap.sidebar.append(series_form.autocomplete_search_serie)
 #bootstrap.sidebar.append(series_form.start_datetime_picker)
@@ -809,7 +760,7 @@ analitics = pn.Row(*trend_list)
 
 bootstrap.main.append(analitics)
 
-bootstrap.modal.append(pn.Row(gauge))
+#bootstrap.modal.append(pn.Row(gauge))
 
 bootstrap.main.append(alerts)
 bootstrap.main.append(container)
