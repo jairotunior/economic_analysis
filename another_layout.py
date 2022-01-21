@@ -675,18 +675,76 @@ def add_recession_info(fig):
         toggle1.js_link('active', r, 'visible')
 
 
+
 def add_chairman_fed(fig):
     df_chairman = pd.read_csv(os.path.join(BASE_DIR, "src", "dataset", "chairmanfed.csv"))
+    df_chairman['start'] = pd.to_datetime(df_chairman['start'], format="%d/%m/%Y")
+    df_chairman['end'] = pd.to_datetime(df_chairman['end'], format="%d/%m/%Y")
+
+    print(df_chairman.head())
+    print(df_chairman.dtypes)
 
     list_chairman_fed = []
 
     for i, row in df_chairman.iterrows():
-        r = BoxAnnotation(left=row['start'], right=row['end'], fill_color='#009E73', fill_alpha=0.1)
+        start = row['start']
+        end = row['end']
+
+        if pd.isnull(row['end']):
+            end = date.today()
+
+        r = BoxAnnotation(left=start, right=end, fill_color='#009E73', fill_alpha=0.1)
         list_chairman_fed.append(r)
 
     for c in list_chairman_fed:
         fig.add_layout(c)
-        toggle1.js_link('active', r, 'visible')
+        #toggle1.js_link('active', r, 'visible')
+
+
+def add_qe(fig):
+    """
+    QE1,25/11/2008,25/6/2010
+    QE2,11/2010,6/2011
+    QE3 - Operation Twist,9/2012,12/2012
+    QE4,1/2013,10/2014
+    QE5,15/3/2020,
+    QT,
+    """
+
+    df_chairman = pd.read_csv(os.path.join(BASE_DIR, "src", "dataset", "chairmanfed.csv"))
+    df_chairman['start'] = pd.to_datetime(df_chairman['start'], format="%d/%m/%Y")
+    df_chairman['end'] = pd.to_datetime(df_chairman['end'], format="%d/%m/%Y")
+
+    print(df_chairman.head())
+    print(df_chairman.dtypes)
+
+    list_chairman_fed = []
+
+    for i, row in df_chairman.iterrows():
+        start = row['start']
+        end = row['end']
+
+        if pd.isnull(row['end']):
+            end = date.today()
+
+        r = BoxAnnotation(left=start, right=end, fill_color='#009E73', fill_alpha=0.1)
+        list_chairman_fed.append(r)
+
+    for c in list_chairman_fed:
+        fig.add_layout(c)
+        #toggle1.js_link('active', r, 'visible')
+
+    """
+    arrow_style = dict(facecolor='black', edgecolor='white', shrink=0.05)
+    ax.annotate('QE1', xy=('2008-11-25', 0), xytext=('2008-11-25', -4), size=12, ha='right', arrowprops=arrow_style)
+    ax.annotate('QE1+', xy=('2009-03-18', 0), xytext=('2009-03-18', -6), size=12, ha='center', arrowprops=arrow_style)
+    ax.annotate('QE2', xy=('2010-11-03', 0), xytext=('2010-11-03', -4), size=12, ha='center', arrowprops=arrow_style)
+    ax.annotate('QE2+', xy=('2011-09-21', 0), xytext=('2011-09-21', -4.5), size=12, ha='center', arrowprops=arrow_style)
+    ax.annotate('QE2+', xy=('2012-06-20', 0), xytext=('2012-06-20', -6.5), size=12, ha='right', arrowprops=arrow_style)
+    ax.annotate('QE3', xy=('2012-09-13', 0), xytext=('2012-09-13', -8), size=12, ha='center', arrowprops=arrow_style)
+    ax.annotate('Tapering', xy=('2013-12-18', 0), xytext=('2013-12-18', -8), size=12, ha='center', arrowprops=arrow_style)
+    """
+
 
 
 def layout_row(list_figs, figs_per_row):
@@ -868,10 +926,7 @@ class AnalysisForm(param.Parameterized):
         #self.param.trigger('update_analysis')
 
     def update_view(self, event):
-        #self.update_datasource(None)
-        #time.sleep(5)
         self.param.trigger('action_update_analysis')
-
 
     @param.depends('action_update_analysis')
     def view(self):
@@ -935,9 +990,6 @@ class SeriesForm(param.Parameterized):
     button_open_modal = pn.widgets.Button(name='Add Serie', width_policy='fit', height_policy='fit', button_type='primary')
     button_add_serie = pn.widgets.Button(name='Add Serie', width_policy='fit', height_policy='fit', button_type='primary')
     button_create_analisis = pn.widgets.Button(name='New Analysis', button_type='success')
-
-    #action_add_serie = param.Action(label='Add Serie')
-    #action_add_analysis = param.Action(label='Add Analysis')
 
     action_update_tabs = param.Action(lambda x: x.param.trigger('action_update_tabs'), label='Update Tabs')
     action_update_alerts = param.Action(lambda x: x.param.trigger('action_update_alerts'), label='Update Alerts')
@@ -1014,12 +1066,13 @@ class SeriesForm(param.Parameterized):
 
         self.param.trigger('action_update_tabs')
 
+    def _get_current_analysis(self):
+        return self.analysis[self.tabs.active]
+
     def add_serie_buttom(self, event):
         serie_id = event.obj.name
         print(serie_id)
-        current_analysis = analisis_list[self.tabs.active]
-
-        #time.sleep(2)
+        current_analysis = self._get_current_analysis()
 
         # Get Data and Join data
         df = analisis_dict[current_analysis]['df']
@@ -1046,7 +1099,7 @@ class SeriesForm(param.Parameterized):
 
         analisis_dict[current_analysis]['series'].append(serie_data)
 
-        # Set Dataset
+        # ************************** Set Dataset
         analisis_dict[current_analysis]['df'] = df
 
         # Update x_data_range
@@ -1059,18 +1112,19 @@ class SeriesForm(param.Parameterized):
         data_source = ColumnDataSource(df)
         analisis_dict[current_analysis]['datasource'] = data_source
 
-        fg, h_hovertool, v_hovertool = create_ts(tab_id=current_analysis, ts=serie_data, source=data_source, x_data_range=analisis_dict[current_analysis]['x_data_range'])
-        add_recession_info(fg)
-        add_current_time_span(fg)
-        add_sync_crosshair(fg)
+        analisis_dict[current_analysis]['series'].append(serie_data)
 
-        # Add Figures to Dict
-        analisis_dict[k]['figures'].append(fg)
+        # ********************* Set Dataset
+        current_analysis.analysis['df'] = df
 
-        if h_hovertool:
-            analisis_dict[k]['hover_tool_h'].append(h_hovertool)
-        if v_hovertool:
-            analisis_dict[k]['hover_tool_v'].append(v_hovertool)
+        # Update x_data_range
+        current_analysis.analysis['start_date'] = df.date.min()
+        current_analysis.analysis['end_date'] = df.date.max()
+
+        current_analysis.analysis['x_data_range'] = DataRange1d(start=df.date.min(), end=df.date.max())
+
+        # Update DataSource
+        current_analysis.analysis['datasource'] = data_source
 
         self.param.trigger('action_update_tabs')
 
@@ -1098,16 +1152,6 @@ class SeriesForm(param.Parameterized):
 
     def tabinfo(self, event):
         print("TAB: ", self.tabs.active)
-
-    """
-    @param.depends('action_update_tabs', 'plot_by_row', watch=False)
-    def get_tabs(self):
-        self.tabs = get_tabs(analisis_dict, ncols=self.plot_by_row)
-
-        self.tabs.param.watch(self.tabinfo, 'active')
-
-        return self.tabs
-    """
 
     @param.depends('action_update_tabs', 'plot_by_row', watch=False)
     def get_tabs(self):
@@ -1142,10 +1186,22 @@ class SeriesForm(param.Parameterized):
         {}
         """
 
+        logo = 'https://fred.stlouisfed.org/images/masthead-88h-2x.png'
+        header_color = 'black'
+        header_background = '#2f2f2f'
+        fed_base_link = "https://fred.stlouisfed.org/series/{}"
+
         for r in self.search_result:
             button_select = pn.widgets.Button(name=r['id'])
             button_select.param.watch(self.add_serie_buttom, 'value')
-            rows.append(pn.Card(pn.Column(description.format(r['name'], r['observation_start'], r['observation_end'], r['frequency'], r['notes']), button_select)))
+
+            button_open_browser = pn.widgets.Button(name='View', button_type='primary')
+            button_open_browser.js_on_click(args={'target': fed_base_link.format(r['id'])}, code='window.open(target.value)')
+
+            rows.append(pn.Card(
+                    pn.Column(description.format(r['name'], r['observation_start'], r['observation_end'], r['frequency'], r['notes']), button_open_browser, button_select),
+                    header=pn.panel(logo, height=40), header_color=header_color, header_background=header_background)
+            )
         return pn.Column("**Search Results:**", pn.GridBox(*rows, ncols=4)) if len(rows) > 0 else None
 
 
