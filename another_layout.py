@@ -1,4 +1,5 @@
 import os
+import re
 import pandas as pd
 import numpy as np
 import requests
@@ -13,7 +14,7 @@ import bokeh
 from bokeh.models.callbacks import CustomJS
 from bokeh.events import Tap, MouseEnter, PointEvent
 
-from bokeh.plotting import figure, show, curdoc
+from bokeh.plotting import figure, show, curdoc, Figure
 from bokeh.models import ColumnDataSource, NumeralTickFormatter, HoverTool, Span, Div, Toggle, BoxAnnotation, Slider, \
     CrosshairTool, Button, DataRange1d, Row, LinearColorMapper, Tabs, GroupFilter, CDSView, IndexFilter
 from bokeh.layouts import gridplot, column, row, widgetbox
@@ -232,7 +233,7 @@ def get_name_list_search():
 
     return new_list
 
-
+"""
 def create_fig(title, legend_label, x_label, y_label, source, x, y, x_data_range, tooltip_format, vtooltip=False,
                htooltip=False, tools=None, view=None, secondary_plot=False):
     # create a new plot and share only one range
@@ -267,8 +268,35 @@ def create_fig(title, legend_label, x_label, y_label, source, x, y, x_data_range
         horizontal_hovertool_fig = HoverTool(tooltips=None, renderers=[cr if secondary_plot else line], mode='hline')
         fig.add_tools(horizontal_hovertool_fig)
     if vtooltip:
-        vertical_hovertool_fig = HoverTool(tooltips=tooltip_format, renderers=[line], formatters={'@date': 'datetime'},
-                                           mode='vline')
+        vertical_hovertool_fig = HoverTool(tooltips=tooltip_format, renderers=[line], formatters={'@date': 'datetime'}, mode='vline')
+        fig.add_tools(vertical_hovertool_fig)
+
+    return fig, horizontal_hovertool_fig, vertical_hovertool_fig
+"""
+
+def create_fig(title, legend_label, x_label, y_label, source, x, y, x_data_range, tooltip_format, vtooltip=False,
+               htooltip=False, tools=None, view=None, secondary_plot=False):
+    # create a new plot and share only one range
+    fig = figure(plot_height=400, plot_width=600, tools=tools, active_scroll='wheel_zoom',
+                 title=title, x_axis_type='datetime', x_axis_label=x_label, x_range=x_data_range,
+                 y_axis_label=y_label)
+
+    line = fig.line(x=x, y=y, source=source, legend_label=legend_label, line_width=2)
+    cr = fig.circle(x=x, y=y, source=source, size=10,
+                      fill_color="grey", hover_fill_color="firebrick",
+                      fill_alpha=0.05, hover_alpha=0.3,
+                      line_color=None, hover_line_color="white")
+
+    print("*** Create Fig Method ***: ", legend_label)
+
+    horizontal_hovertool_fig = None
+    vertical_hovertool_fig = None
+
+    if htooltip:
+        horizontal_hovertool_fig = HoverTool(tooltips=None, renderers=[cr], mode='hline')
+        fig.add_tools(horizontal_hovertool_fig)
+    if vtooltip:
+        vertical_hovertool_fig = HoverTool(tooltips=tooltip_format, renderers=[line], formatters={'@date': 'datetime'}, mode='vline')
         fig.add_tools(vertical_hovertool_fig)
 
     return fig, horizontal_hovertool_fig, vertical_hovertool_fig
@@ -295,6 +323,7 @@ yield_columns = ['3 MO', '2 YR', '5 YR', '7 YR', '10 YR', '20 YR', '30 YR']
 
 download_data = False
 
+"""
 if not os.path.exists(os.path.join(BASE_DIR, "src", "dataset", "dataset_complete.csv")) or download_data:
     for k in list_ts:
         tick = k['tick']
@@ -338,6 +367,8 @@ df_yields = pd.DataFrame(
 
 yield_source = ColumnDataSource(data=df_yields)
 main_source = ColumnDataSource(df_result)
+"""
+
 
 # ****************************************** Global Variables ***************************
 # analist_dict format
@@ -357,54 +388,80 @@ fig_list = []
 horizontal_hover_tool_list = []
 vertical_hover_tool_list = []
 
-tools = ['xpan', 'reset', 'save', 'xwheel_zoom', 'box_select', 'lasso_select']
+tools = ['pan', 'reset', 'save', 'wheel_zoom', 'box_select', 'lasso_select']
 crosshair = CrosshairTool(dimensions="both")
 
 
+
+class ManagerData:
+    def __init__(self):
+        pass
+
 # ************************************** Load Analysis *********************************************
-df_analysis = pd.DataFrame({"name": ["Analisis 1", "Analisis 2", "Analisis 1"], "serie": ['GDP', 'PCE', 'GDP'], 'source': ['fred', 'fred', 'fred']})
+df_analysis = pd.DataFrame({"name": ["Analisis 1", "Analisis 2", "Analisis 1"],
+                            "serie_id": ['GDP', 'PCE', 'CPIAUCSL'],
+                            'serie_name': ['Lorem', 'Ipsum', 'GGDDD LP'],
+                            'source': ['fred', 'fred', 'fred'],
+                            'units': ['Billions', 'Billions', 'Billions'],
+                            'freq': ['M', 'M', 'M'],
+                            'column_name': ['GDP', 'PCE', 'CPIAUCSL']})
+
 analisis_list = df_analysis['name'].unique()
 
 for a in analisis_list:
     analisis_dict[a] = {}
     analisis_dict[a]['series'] = []
-    analisis_dict[a]['figs'] = []
+    analisis_dict[a]['figures'] = []
     analisis_dict[a]['datasource'] = None
+    analisis_dict[a]['hover_tool_h'] = []
+    analisis_dict[a]['hover_tool_v'] = []
+
     df_series = df_analysis[df_analysis['name'] == a]
 
     list_df_analisis = []
 
     for i, s in df_series.iterrows():
-        tick = s['serie']
+        serie_id = s['serie_id']
         source = s['source']
+        units = s['units']
+        freq = s['freq']
+        serie_name = s['serie_name']
+        column = s['column_name']
 
         # Add Info Series in List
-        analisis_dict[a]['series'].append({"name": tick, "source": source})
+        analisis_dict[a]['series'].append({"serie_id": serie_id, "source": source, 'units': units, 'freq': freq, 'serie_name': serie_name, 'column': column})
 
+        # Temporal Dataframe
         df = None
 
         # Es una funcion custom
         if callable(source):
             df = source()
         elif source == 'fred':
-            df = get_fred_dataset(tick, rename_column=tick)
+            df = get_fred_dataset(serie_id, rename_column=serie_id)
+            #df.loc[:, "{}_{}".format(serie_id, 'base')] = 1
         elif source == 'quandl':
-            df = get_quandl_dataset(tick)
+            df = get_quandl_dataset(serie_id)
 
-        df.fillna(method='ffill', inplace=True)
+        #df.fillna(method='ffill', inplace=True)
         list_df_analisis.append(df)
 
-    df_aux = pd.concat(df_list, axis=1)
+    df_aux = pd.concat(list_df_analisis, axis=1)
+    df_aux.fillna(method='ffill', inplace=True)
+
+    #columns = [c for c in df_aux.columns if not re.search("_base$", c)]
+    #df_aux.loc[:, columns] = df_aux[columns].fillna(method='ffill', inplace=True)
+
     df_aux = df_aux.reset_index()
 
-    analisis_dict[a] = df_aux
+    analisis_dict[a]['df'] = df_aux
 
     analisis_dict[a]['start_date'] = df_aux.date.min()
     analisis_dict[a]['end_date'] = df_aux.date.max()
 
-    analisis_dict[a]['x_data_range'] = DataRange1d(start=analisis_dict[a]['start_date'], end=analisis_dict[a]['end_date'])
+    analisis_dict[a]['x_data_range'] = DataRange1d(start=df_aux.date.min(), end=df_aux.date.max())
 
-    analisis_dict[a]['datasource'] = ColumnDataSource(analisis_dict[a])
+    analisis_dict[a]['datasource'] = ColumnDataSource(analisis_dict[a]['df'])
 
 
 # ****************************************** Create Figures *******************************
@@ -486,6 +543,7 @@ console.log(new Date(cb_obj.x));
 """)
 
 
+
 def point_event_callback(event):
     # print(event.x, event.y, event.sx, event.sy)
     # Linea que muestra la linea de tiempo
@@ -526,13 +584,19 @@ def enable_vertical_hovertool_callback(event):
         f.toolbar.active_inspect = None
 
 
-# ************************************* Methods ***********************************
+def serie_pct_change(df, serie_id, periods=12):
+    return df[serie_id].pct_change(periods=periods) * 100
 
-def create_ts(ts, tab_id, x_data_range=None):
-    tick = ts['tick']
-    title = ts['name']
-    category = ts['category']
+def serie_differentiation(df, serie_id, lags=1):
+    return df[serie_id].diff(periods=lags)
+
+
+# ************************************* Methods ***********************************
+def create_ts(ts, source, x_data_range):
+    tick = ts['column']
+    title = ts['serie_name']
     freq = ts['freq']
+    units = ts['units']
 
     fig = h_hovertool = v_hovertool = None
 
@@ -542,55 +606,53 @@ def create_ts(ts, tab_id, x_data_range=None):
         ('Rate', '@{}'.format(tick)),
     ]
 
-    if tick in ['USTREASURY/YIELD', ]:
-        # create a new plot and share only one range
-        fig = figure(plot_height=400, plot_width=600, tools=tools, active_scroll='xwheel_zoom',
-                     title="U.S. Yield Curve", x_axis_label='Months', y_axis_label='Yield %', x_range=yield_columns,
-                     y_range=y_yields_data_range)
+    fig, h_hovertool, v_hovertool = create_fig(title=title, legend_label=tick, x_label='date',
+                                               y_label=units,
+                                               source=source,
+                                               x='date', y=tick, x_data_range=x_data_range,
+                                               tooltip_format=tooltip_format, htooltip=True, vtooltip=False,
+                                               tools=tools)
 
-        fig.line(x='yield_category', y='yields', source=yield_source, legend_label="Yield Curve", line_width=2)
-
-    else:
-        df_filter = df_result[pd.notnull(df_result[tick])]
-
-        #x_range = DataRange1d(start=df_filter.date.min(), end=df_filter.date.max())
-
-        if freq != 'D':
-            view = CDSView(source=main_source, filters=[IndexFilter(df_filter.index)])
-
-            fig, h_hovertool, v_hovertool = create_fig(title=title, legend_label=tick, x_label='date',
-                                                       y_label='units',
-                                                       source=main_source, view=view,
-                                                       x='date', y=tick, x_data_range=x_data_range,
-                                                       tooltip_format=tooltip_format, htooltip=True, vtooltip=False,
-                                                       tools=tools)
-        else:
-            fig, h_hovertool, v_hovertool = create_fig(title=title, legend_label=tick, x_label='date',
-                                                       y_label='units',
-                                                       source=main_source,
-                                                       x='date', y=tick, x_data_range=x_data_range,
-                                                       tooltip_format=tooltip_format, htooltip=True, vtooltip=False,
-                                                       tools=tools)
-
-        #fig.x_range = x_range
-
-    # fig_list.append({'figure': fig, 'category': category, 'title': title, 'tick': tick})
-    fig_dict[tab_id].append({'figure': fig, 'category': category, 'title': title, 'tick': tick})
-
-    if h_hovertool:
-        horizontal_hover_tool_list.append(h_hovertool)
-    if v_hovertool:
-        vertical_hover_tool_list.append(v_hovertool)
-
-    return fig
+    return fig, h_hovertool, v_hovertool
 
 
 def add_current_time_span(fig):
     fig.renderers.extend([current_time])
     fig.js_on_event('tap', callback_figs)
     # f.on_event(Tap, point_event_callback)
-    fig.on_event('tap', point_event_callback)
+    # Actualizacion de la Yield Curve
+    #fig.on_event('tap', point_event_callback)
     # f.on_event("mousemove", point_event_callback)
+
+
+def add_auto_adjustment_y(fig, df, serie_id):
+    source = ColumnDataSource(dict(index=df.date, x=df[serie_id]))
+
+    callback_rescale = CustomJS(args=dict(y_range=fig.y_range, source=source), code='''
+        clearTimeout(window._autoscale_timeout);
+ 
+        var index = source.data.index,
+            x = source.data.x,
+            start = cb_obj.start,
+            end = cb_obj.end,
+            min = 1e10,
+            max = -1;
+
+        for (var i=0; i < index.length; ++i) {
+            if (start <= index[i] && index[i] <= end) {
+                max = Math.max(x[i], max);
+                min = Math.min(x[i], min);
+            }
+        }
+        var pad = (max - min) * .05;
+
+        window._autoscale_timeout = setTimeout(function() {
+            y_range.start = min - pad;
+            y_range.end = max + pad;
+        }, 50);
+    ''')
+
+    fig.x_range.js_on_change('start', callback_rescale)
 
 
 def add_sync_crosshair(fig):
@@ -613,6 +675,20 @@ def add_recession_info(fig):
         toggle1.js_link('active', r, 'visible')
 
 
+def add_chairman_fed(fig):
+    df_chairman = pd.read_csv(os.path.join(BASE_DIR, "src", "dataset", "chairmanfed.csv"))
+
+    list_chairman_fed = []
+
+    for i, row in df_chairman.iterrows():
+        r = BoxAnnotation(left=row['start'], right=row['end'], fill_color='#009E73', fill_alpha=0.1)
+        list_chairman_fed.append(r)
+
+    for c in list_chairman_fed:
+        fig.add_layout(c)
+        toggle1.js_link('active', r, 'visible')
+
+
 def layout_row(list_figs, figs_per_row):
     list_result = []
     current_list = []
@@ -631,25 +707,207 @@ def layout_row(list_figs, figs_per_row):
     return list_result
 
 
-def get_tabs():
+
+class ChartForm(param.Parameterized):
+
+    #select_processing = param.Selector(['Normal', 'Percentage Change', 'Percentage Change from Year Ago'])
+
+    def __init__(self, parent, ts, **params):
+        super().__init__(**params)
+
+        self.ts = ts
+        self.parent = parent
+
+        self.select_processing_2 = pn.widgets.Select(name='Processing', options=['Normal', 'Percentage Change', 'Percentage Change from Year Ago'])
+        self.select_processing_2.param.watch(self.set_column, 'value')
+
+    #@param.output(('datasource', ColumnDataSource))
+    def output(self):
+        processing = self.select_processing
+        serie_id = self.ts['serie_id']
+        df = self.parent.analysis['df']
+
+        modification = False
+
+        if processing == 'Percentage Change':
+            column = "{}_{}".format(serie_id, "pct1")
+            if not column in df.columns:
+                df[column] = serie_pct_change(df, serie_id, periods=1)
+                self.ts['column'] = column
+                modification = True
+        elif processing == 'Percentage Change from Year Ago':
+            column = "{}_{}".format(serie_id, "pct12")
+            if not column in df.columns:
+                df[column] = serie_pct_change(df, serie_id, periods=12)
+                self.ts['column'] = column
+                modification = True
+        elif processing == 'Differentiation':
+            column = "{}_{}".format(serie_id, "diff")
+            if not column in df.columns:
+                df[column] = serie_differentiation(df, serie_id)
+                self.ts['column'] = column
+                modification = True
+        elif processing == 'Normal':
+            self.ts['column'] = serie_id
+            return self.parent.analysis['datasource']
+
+        if modification:
+            self.parent.analysis['df'] = df
+            self.parent.analysis['datasource'] = ColumnDataSource(df)
+
+        return self.parent.analysis['datasource']
+
+    def set_column(self, event):
+        processing = event.new
+        print("** Chart Form: ", processing)
+        serie_id = self.ts['serie_id']
+        df = self.parent.analysis['df']
+
+        if processing == 'Percentage Change':
+            column = "{}_{}".format(serie_id, "pct1")
+            if not column in df.columns:
+                self.ts['column'] = column
+        elif processing == 'Percentage Change from Year Ago':
+            column = "{}_{}".format(serie_id, "pct12")
+            if not column in df.columns:
+                self.ts['column'] = column
+        elif processing == 'Differentiation':
+            column = "{}_{}".format(serie_id, "diff")
+            if not column in df.columns:
+                self.ts['column'] = column
+        elif processing == 'Normal':
+            self.ts['column'] = serie_id
+
+    #@param.depends('select_processing')
+    def view(self):
+        #data_source = self.output()
+        print("******** Chart Form View**************")
+        print("************ Chart Form - Set column **************")
+        #self.set_column()
+        fg, h_hovertool, v_hovertool = create_ts(ts=self.ts, source=self.parent.analysis['datasource'], x_data_range=self.parent.analysis['x_data_range'])
+        add_recession_info(fg)
+        add_current_time_span(fg)
+        add_auto_adjustment_y(fg, self.parent.analysis['df'], self.ts['serie_id'])
+        add_sync_crosshair(fg)
+
+        return fg
+
+    def panel(self):
+        return pn.Card(pn.Column(self.view, self.select_processing_2), title=self.ts['serie_name'])
+
+    def __repr__(self, *_):
+        return "Value"
+
+
+class AnalysisForm(param.Parameterized):
+
+    action_update_analysis = param.Action(lambda x: x.param.trigger('action_update_analysis'), label='Update Analysis')
+
+    def __init__(self, parent, analysis_name, analysis, **params):
+        super().__init__(**params)
+
+        self.analysis_name = analysis_name
+        self.analysis = analysis
+        self.chart_forms = []
+        self.parent = parent
+        self.ncols = 3
+
+    def add_chart(self, s):
+        chart_form = ChartForm(self, s)
+        chart_form.select_processing_2.param.watch(self.update_view, 'value')
+        self.chart_forms.append(chart_form)
+        return chart_form
+
+    @param.output(ColumnDataSource)
+    def get_datasource(self):
+        print("**** Analysis Update Data Source *****")
+        modification = False
+        df = self.analysis['df']
+
+        for c in self.chart_forms:
+            processing = c.select_processing_2.value
+            print("** Analysis: ", processing)
+            serie_id = c.ts['serie_id']
+            print("** Analysis Serie: ", serie_id)
+
+            if processing == 'Percentage Change':
+                column = "{}_{}".format(serie_id, "pct1")
+                if not column in df.columns:
+                    df[column] = serie_pct_change(df, serie_id, periods=1)
+                    c.ts['column'] = column
+                    modification = True
+            elif processing == 'Percentage Change from Year Ago':
+                column = "{}_{}".format(serie_id, "pct12")
+                print("** Analysis Column: ", column)
+                if not column in df.columns:
+                    print("** Analysis Entro ***: ")
+                    df[column] = serie_pct_change(df, serie_id, periods=12)
+                    c.ts['column'] = column
+                    modification = True
+            elif processing == 'Differentiation':
+                column = "{}_{}".format(serie_id, "diff")
+                if not column in df.columns:
+                    df[column] = serie_differentiation(df, serie_id)
+                    c.ts['column'] = column
+                    modification = True
+            elif processing == 'Normal':
+                c.ts['column'] = serie_id
+                continue
+
+        if modification:
+            print("*** Analysis Updated DataSource ***")
+            self.analysis['df'] = df
+            self.analysis['datasource'] = ColumnDataSource(df)
+
+        print(self.analysis['df'].columns)
+
+        return self.analysis['datasource']
+
+        #self.param.trigger('action_update_analysis')
+
+        #self.param.trigger('update_analysis')
+
+    def update_view(self, event):
+        #self.update_datasource(None)
+        #time.sleep(5)
+        self.param.trigger('action_update_analysis')
+
+
+    @param.depends('action_update_analysis')
+    def view(self):
+        print("***** Analysis View *********")
+        self.analysis['datasource'] = self.get_datasource()
+        #return pn.GridBox(*self.chart_forms, ncols=self.ncols)
+        return pn.GridBox(*[c.panel() for c in self.chart_forms], ncols=3)
+
+
+    def panel(self, plot_by_row):
+        print("********** Analysis Panel ****************")
+        #self.update_datasource()
+        #return pn.GridBox(*[c.panel() for c in self.chart_forms], ncols=plot_by_row)
+        return pn.Column(self.param, self.view)
+
+    def __repr__(self, *_):
+        return "Value"
+
+def get_tabs(analisis_dict, ncols=3):
     tabs = None
     tuplas = []
 
-    for k in analisis_list:
-        fig_lst = fig_dict[k]
-        figs = [pn.Card(f['figure'], title=f['title']) for f in fig_lst]
+    for k in analisis_dict.keys():
+        #figs = [pn.Card(f, title=s['serie_name']) for f, s in zip(analisis_dict[k]['figures'], analisis_dict[k]['series'])]
+        #figs = [f.panel() for f in analisis_dict[k]['forms']]
+        figs = [f.panel() for f in analisis_dict[k]['forms']]
         #tuplas.append((k, pn.Column(*[pn.Row(*c) for c in layout_row(figs, 3)])))
-        tuplas.append((k, pn.GridBox(*figs, ncols=3)))
+        tuplas.append((k, pn.GridBox(*figs, ncols=ncols)))
 
+    #cross_selector = pn.widgets.CrossSelector(name='Fruits', value=[], options=df_result.columns.to_list())
 
-    cross_selector = pn.widgets.CrossSelector(name='Fruits', value=[], options=df_result.columns.to_list())
-
-    tuplas.append(('Analysis', cross_selector))
+    #tuplas.append(('Analysis', cross_selector))
 
     tabs = pn.Tabs(*tuplas, closable=True)
 
     return tabs
-
 
 
 class SeriesForm(param.Parameterized):
@@ -659,6 +917,8 @@ class SeriesForm(param.Parameterized):
         placeholder='Ticker or Serie Name', case_sensitive=False)
     """
 
+    plot_by_row = param.Integer(3, bounds=(1, 4))
+
     autocomplete_search_serie = pn.widgets.TextInput(name='Search Serie', placeholder='Ticker or Serie Name')
 
     """
@@ -666,10 +926,6 @@ class SeriesForm(param.Parameterized):
                                                       value=datetime.now() - timedelta(days=365 * 10))
     end_datetime_picker = pn.widgets.DatetimePicker(name='End Date', value=datetime.now())
     """
-
-    select_proccessing = pn.widgets.Select(name='Processing',
-                                           options=['Normal', 'Percentage Change', 'Percentage Change from Year Ago',
-                                                    'Differentiation'])
 
     #checkbox_with_end_date = pn.widgets.Checkbox(name='Disable End Date')
 
@@ -692,13 +948,15 @@ class SeriesForm(param.Parameterized):
 
         #self.checkbox_with_end_date.param.watch(self.disable_end_date, ['value'], onlychanged=False)
 
-        self.button_add_serie.param.watch(self.add_serie, 'value')
-        self.button_create_analisis.param.watch(self.add_analysis, 'value')
+        self.button_add_serie.param.watch(self.add_serie_buttom, 'value')
+        self.button_create_analisis.param.watch(self.create_analysis, 'value')
         self.button_open_modal.param.watch(self.open_modal, 'value')
         self.autocomplete_search_serie.param.watch(self._update_countries, 'value')
 
         self.alerts = []
         self.search_result = []
+
+        self.analysis = []
         """
         self.view = pn.Param(self,
             widgets = {
@@ -708,11 +966,16 @@ class SeriesForm(param.Parameterized):
         )
         """
 
+    def add_analysis(self, analysis_name, analysis):
+        analysis = AnalysisForm(parent=self, analysis_name=analysis_name, analysis=analysis)
+        self.analysis.append(analysis)
+        return analysis
 
     #def disable_end_date(self, event):
     #    self.end_datetime_picker.disabled = event.new
 
     def _update_countries(self, event):
+        time.sleep(1)
         if event.new != "":
             series = fred.search_for_series([str(event.new)], limit=20)
             self.search_result = []
@@ -753,23 +1016,68 @@ class SeriesForm(param.Parameterized):
 
     def add_serie_buttom(self, event):
         serie_id = event.obj.name
-        df_serie = fred.get_series_df(series_id=serie_id)
-        print(df_serie.head())
-        """
-        time.sleep(2)
-        tab_id = analisis_list[0]
-        fg = create_ts(list_ts[pos[0]], tab_id)
+        print(serie_id)
+        current_analysis = analisis_list[self.tabs.active]
+
+        #time.sleep(2)
+
+        # Get Data and Join data
+        df = analisis_dict[current_analysis]['df']
+        df = df.set_index('date')
+
+        df_serie = get_fred_dataset(serie_id, rename_column=serie_id)
+        #df_serie.fillna(method='ffill', inplace=True)
+
+        df = pd.concat([df, df_serie], axis=1)
+        df.fillna(method='ffill', inplace=True)
+
+        #columns = [c for c in df.columns if not re.search("_base$", c)]
+        #df[columns] = df[columns].fillna(method='ffill', inplace=True)
+
+        df = df.reset_index()
+
+        # Serie Information
+        serie_data = None
+
+        for s in self.search_result:
+            if s['id'] == serie_id:
+                serie_data = {"serie_id": s['id'], "source": "fred", 'units': s['units'], 'freq': s['frequency'], 'serie_name': s['name']}
+                break
+
+        analisis_dict[current_analysis]['series'].append(serie_data)
+
+        # Set Dataset
+        analisis_dict[current_analysis]['df'] = df
+
+        # Update x_data_range
+        analisis_dict[current_analysis]['start_date'] = df.date.min()
+        analisis_dict[current_analysis]['end_date'] = df.date.max()
+
+        analisis_dict[current_analysis]['x_data_range'] = DataRange1d(start=df.date.min(), end=df.date.max())
+
+        # Update DataSource
+        data_source = ColumnDataSource(df)
+        analisis_dict[current_analysis]['datasource'] = data_source
+
+        fg, h_hovertool, v_hovertool = create_ts(tab_id=current_analysis, ts=serie_data, source=data_source, x_data_range=analisis_dict[current_analysis]['x_data_range'])
         add_recession_info(fg)
         add_current_time_span(fg)
         add_sync_crosshair(fg)
 
-        self.alerts.append("Seleccione una serie de tiempo valida.")
-        self.param.trigger('action_update_alerts')
+        # Add Figures to Dict
+        analisis_dict[k]['figures'].append(fg)
+
+        if h_hovertool:
+            analisis_dict[k]['hover_tool_h'].append(h_hovertool)
+        if v_hovertool:
+            analisis_dict[k]['hover_tool_v'].append(v_hovertool)
 
         self.param.trigger('action_update_tabs')
-        """
 
-    def add_analysis(self, event):
+        bootstrap.close_modal()
+
+
+    def create_analysis(self, event):
         time.sleep(2)
         name = "Default" + str(random.randint(0, 1000))
         analisis_list.append(name)
@@ -788,12 +1096,41 @@ class SeriesForm(param.Parameterized):
 
         return list_alerts[0] if len(list_alerts) > 0 else None
 
-    @param.depends('action_update_tabs', watch=False)
+    def tabinfo(self, event):
+        print("TAB: ", self.tabs.active)
+
+    """
+    @param.depends('action_update_tabs', 'plot_by_row', watch=False)
     def get_tabs(self):
-        #print("Render Tabs")
-        self.tabs = get_tabs()
+        self.tabs = get_tabs(analisis_dict, ncols=self.plot_by_row)
+
+        self.tabs.param.watch(self.tabinfo, 'active')
 
         return self.tabs
+    """
+
+    @param.depends('action_update_tabs', 'plot_by_row', watch=False)
+    def get_tabs(self):
+        tabs = None
+        tuplas = []
+
+        for a in self.analysis:
+            # figs = [pn.Card(f, title=s['serie_name']) for f, s in zip(analisis_dict[k]['figures'], analisis_dict[k]['series'])]
+            # figs = [f.panel() for f in analisis_dict[k]['forms']]
+            #figs = a.panel()
+            # tuplas.append((k, pn.Column(*[pn.Row(*c) for c in layout_row(figs, 3)])))
+            #tuplas.append((k, pn.GridBox(*figs, ncols=self.plot_by_row)))
+
+            panel = a.panel(self.plot_by_row)
+
+            tuplas.append((a.analysis_name, panel))
+
+        self.tabs = pn.Tabs(*tuplas, closable=True)
+
+        self.tabs.param.watch(self.tabinfo, 'active')
+
+        return self.tabs
+
 
     @param.depends('action_update_search_results', watch=False)
     def get_search_results(self):
@@ -816,40 +1153,54 @@ class SeriesForm(param.Parameterized):
         return "Value"
 
 
+# ******************************************** Create Figures *************************************
 series_form = SeriesForm()
+
+
+for k in analisis_dict.keys():
+    series = analisis_dict[k]['series']
+    data_source = analisis_dict[k]['datasource']
+    x_data_range = analisis_dict[k]['x_data_range']
+
+    current_analysis = series_form.add_analysis(k, analisis_dict[k])
+
+    print("Analisis: {}".format(k))
+    print(series)
+
+    tab_id = k
+
+    for s in series:
+        print(s)
+        current_analysis.add_chart(s)
+
+        """
+        fg, h_hovertool, v_hovertool = create_ts(ts=s, source=data_source, x_data_range=x_data_range)
+        add_recession_info(fg)
+        add_current_time_span(fg)
+        add_auto_adjustment_y(fg, analisis_dict[k]['df'], s['serie_id'])
+        add_sync_crosshair(fg)
+
+        # Add Figures to Dict
+        analisis_dict[tab_id]['figures'].append(fg)
+
+        if h_hovertool:
+            analisis_dict[tab_id]['hover_tool_h'].append(h_hovertool)
+        if v_hovertool:
+            analisis_dict[tab_id]['hover_tool_v'].append(v_hovertool)
+        """
+
 
 
 alerts = pn.Row(pn.panel(series_form.get_alerts, width=300))
 container = pn.Row(pn.panel(series_form.get_tabs, width=300))
 
-description = """
-Every pane, widget and layout provides the **`loading` parameter**. When set to `True` a spinner will overlay the panel and indicate that the panel is currently loading. When you set `loading` to false the spinner is removed. 
-
-Using the `pn.extension` or by setting the equivalent parameters on `pn.config` we can select between different visual styles and colors for the loading indicator.
-
-```python
-pn.extension(loading_spinner='dots', loading_color='#00aa41')
-```
-
-We can enable the loading indicator for reactive functions annotated with `depends` or `bind` globally using:
-
-```python
-pn.param.ParamMethod.loading_indicator = True
-```
-"""
 
 bootstrap.sidebar.append(series_form.button_open_modal)
-#bootstrap.sidebar.append(series_form.autocomplete_search_serie)
-#bootstrap.sidebar.append(series_form.start_datetime_picker)
-#bootstrap.sidebar.append(series_form.end_datetime_picker)
-bootstrap.sidebar.append(series_form.select_proccessing)
-#bootstrap.sidebar.append(series_form.checkbox_with_end_date)
-#bootstrap.sidebar.append(series_form.view)
-
 bootstrap.sidebar.append(series_form.button_create_analisis)
 
 
 bootstrap.sidebar.append(toggle1)
+bootstrap.sidebar.append(series_form.param)
 bootstrap.sidebar.append(checkbox_crisis)
 bootstrap.sidebar.append(checkbox_qe)
 bootstrap.sidebar.append(checkbox_qt)
@@ -859,6 +1210,7 @@ bootstrap.sidebar.append(checkbox_enable_syncronize_chart)
 bootstrap.sidebar.append(checkbox_enable_vertical_tooltip)
 bootstrap.sidebar.append(checkbox_enable_horizontal_tooltip)
 
+"""
 bootstrap.sidebar.append(pn.Card(gauge, title="Bitcoin Fear and Greed"))
 
 # Bitcoin Fear and Greed
@@ -891,10 +1243,10 @@ number = pn.indicators.Number(
 analitics = pn.Row(*trend_list)
 
 bootstrap.main.append(analitics)
+"""
 
 bootstrap.modal.append(pn.Column(pn.Row(series_form.autocomplete_search_serie), series_form.get_search_results))
 
-bootstrap.main.append(description)
 bootstrap.main.append(alerts)
 bootstrap.main.append(container)
 
