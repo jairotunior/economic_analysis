@@ -842,7 +842,7 @@ class ChartForm(param.Parameterized):
         print("******** Chart Form View**************")
         print("************ Chart Form - Set column **************")
         #self.set_column()
-        fg, h_hovertool, v_hovertool = create_ts(ts=self.ts, source=self.parent.analysis['datasource'], x_data_range=self.parent.analysis['x_data_range'])
+        fg, h_hovertool, v_hovertool = create_ts(ts=self.ts, source=self.parent.datasource, x_data_range=self.parent.x_data_range)
         add_recession_info(fg)
         add_current_time_span(fg)
         add_auto_adjustment_y(fg, self.parent.analysis['df'], self.ts['serie_id'])
@@ -861,26 +861,54 @@ class AnalysisForm(param.Parameterized):
 
     action_update_analysis = param.Action(lambda x: x.param.trigger('action_update_analysis'), label='Update Analysis')
 
+    chart_forms = param.List([], item_type=ChartForm)
+
     def __init__(self, parent, analysis_name, analysis, **params):
         super().__init__(**params)
 
         self.analysis_name = analysis_name
         self.analysis = analysis
-        self.chart_forms = []
+
+        #self.chart_forms = []
         self.parent = parent
         self.ncols = 3
+
+        self.series = analysis['series']
+        self.start_date = analysis['start_date']
+        self.end_date = analysis['end_date']
+        self.x_data_range = analysis['x_data_range']
+
+        self.dataframe = self.analysis['df']
+        self.datasource = ColumnDataSource(self.dataframe)
+
+        """
+        analysis = {
+            'series': [*current_analysis.analysis['series'], serie_data],
+            'df': df,
+            'start_date': df.date.min(),
+            'end_date': df.date.max(),
+            'x_data_range': DataRange1d(start=df.date.min(), end=df.date.max()),
+            'datasource': data_source
+        }
+        """
 
     def add_chart(self, s):
         chart_form = ChartForm(self, s)
         chart_form.select_processing_2.param.watch(self.update_view, 'value')
-        self.chart_forms.append(chart_form)
+
+        #self.chart_forms.append(chart_form)
+        self.chart_forms = [*self.chart_forms, chart_form]
+
+        #self.analysis['series'].append(s)
+        #self.series.append(s)
+
         return chart_form
 
     @param.output(ColumnDataSource)
     def get_datasource(self):
         print("**** Analysis Update Data Source *****")
         modification = False
-        df = self.analysis['df']
+        df = self.dataframe
 
         for c in self.chart_forms:
             processing = c.select_processing_2.value
@@ -914,24 +942,21 @@ class AnalysisForm(param.Parameterized):
 
         if modification:
             print("*** Analysis Updated DataSource ***")
-            self.analysis['df'] = df
-            self.analysis['datasource'] = ColumnDataSource(df)
+            self.analysis['df'] = self.dataframe = df
+            self.analysis['datasource'] = self.datasource = ColumnDataSource(df)
 
         print(self.analysis['df'].columns)
 
         return self.analysis['datasource']
 
-        #self.param.trigger('action_update_analysis')
-
-        #self.param.trigger('update_analysis')
 
     def update_view(self, event):
         self.param.trigger('action_update_analysis')
 
-    @param.depends('action_update_analysis')
+    @param.depends('action_update_analysis', 'chart_forms')
     def view(self):
         print("***** Analysis View *********")
-        self.analysis['datasource'] = self.get_datasource()
+        self.analysis['datasource'] = self.datasource = self.get_datasource()
         #return pn.GridBox(*self.chart_forms, ncols=self.ncols)
         return pn.GridBox(*[c.panel() for c in self.chart_forms], ncols=3)
 
@@ -1075,7 +1100,8 @@ class SeriesForm(param.Parameterized):
         current_analysis = self._get_current_analysis()
 
         # Get Data and Join data
-        df = analisis_dict[current_analysis]['df']
+        #df = analisis_dict[current_analysis]['df']
+        df = current_analysis.analysis['df']
         df = df.set_index('date')
 
         df_serie = get_fred_dataset(serie_id, rename_column=serie_id)
@@ -1097,6 +1123,7 @@ class SeriesForm(param.Parameterized):
                 serie_data = {"serie_id": s['id'], "source": "fred", 'units': s['units'], 'freq': s['frequency'], 'serie_name': s['name']}
                 break
 
+        """
         analisis_dict[current_analysis]['series'].append(serie_data)
 
         # ************************** Set Dataset
@@ -1111,22 +1138,35 @@ class SeriesForm(param.Parameterized):
         # Update DataSource
         data_source = ColumnDataSource(df)
         analisis_dict[current_analysis]['datasource'] = data_source
+        """
 
-        analisis_dict[current_analysis]['series'].append(serie_data)
+        """
+        analysis = {
+            'series': [*current_analysis.analysis['series'], serie_data],
+            'df': df,
+            'start_date': df.date.min(),
+            'end_date': df.date.max(),
+            'x_data_range': DataRange1d(start=df.date.min(), end=df.date.max()),
+            'datasource': data_source
+        }
+        """
+
 
         # ********************* Set Dataset
-        current_analysis.analysis['df'] = df
+        current_analysis.analysis['df'] = current_analysis.dataframe = df
 
         # Update x_data_range
-        current_analysis.analysis['start_date'] = df.date.min()
-        current_analysis.analysis['end_date'] = df.date.max()
+        current_analysis.analysis['start_date'] = current_analysis.start_date = df.date.min()
+        current_analysis.analysis['end_date'] = current_analysis.end_date = df.date.max()
 
-        current_analysis.analysis['x_data_range'] = DataRange1d(start=df.date.min(), end=df.date.max())
+        current_analysis.analysis['x_data_range'] = current_analysis.x_data_range = DataRange1d(start=df.date.min(), end=df.date.max())
 
         # Update DataSource
-        current_analysis.analysis['datasource'] = data_source
+        data_source = ColumnDataSource(df)
+        current_analysis.analysis['datasource'] = current_analysis.datasource = data_source
 
-        self.param.trigger('action_update_tabs')
+        current_analysis.add_chart(serie_data)
+        #current_analysis.param.trigger('update_df_event')
 
         bootstrap.close_modal()
 
