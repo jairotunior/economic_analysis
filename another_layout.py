@@ -299,7 +299,7 @@ def create_fig(title, legend_label, x_label, y_label, source, x, y, x_data_range
                       fill_alpha=0.05, hover_alpha=0.3,
                       line_color=None, hover_line_color="white")
 
-    print("*** Create Fig Method ***: ", legend_label)
+    logging.debug("*** Create Fig Method ***: ", legend_label)
 
     horizontal_hovertool_fig = None
     vertical_hovertool_fig = None
@@ -861,7 +861,7 @@ class ChartForm(param.Parameterized):
 
     def set_column(self, event):
         processing = event.new
-        print("** Chart Form: ", processing)
+        logging.debug("** Chart Form: ", processing)
         serie_id = self.serie_id
         columns = self.parent.df.columns
 
@@ -887,8 +887,8 @@ class ChartForm(param.Parameterized):
     #@param.depends('select_processing')
     def view(self):
         #data_source = self.output()
-        print("******** Chart Form View**************")
-        print("************ Chart Form - Set column **************")
+        logging.debug("******** Chart Form View**************")
+        logging.debug("************ Chart Form - Set column **************")
         fg, h_hovertool, v_hovertool = create_ts(source=self.parent.data_source, x_data_range=self.parent.x_data_range,
                                                 column=self.column, serie_name=self.serie_name, freq=self.freq, units=self.units_show)
         add_recession_info(fg)
@@ -981,15 +981,15 @@ class AnalysisForm(param.Parameterized):
 
     #@param.output(ColumnDataSource)
     def get_data_source(self):
-        print("**** Analysis Update Data Source *****")
+        logging.debug("**** Analysis Update Data Source *****")
         modification = False
         df = self.df
 
         for c in self.chart_forms:
             processing = c.select_processing_2.value
-            print("** Analysis Processing Variable: ", c.select_processing_2)
+            logging.debug("** Analysis Processing Variable: ", c.select_processing_2)
             serie_id = c.serie_id
-            print("** Analysis Serie: ", serie_id)
+            logging.debug("** Analysis Serie: ", serie_id)
 
             if processing == 'Percentage Change':
                 column = "{}_{}".format(serie_id, "pct1")
@@ -999,9 +999,7 @@ class AnalysisForm(param.Parameterized):
                     modification = True
             elif processing == 'Percentage Change from Year Ago':
                 column = "{}_{}".format(serie_id, "pct12")
-                print("** Analysis Column: ", column)
                 if not column in df.columns:
-                    print("** Analysis Entro ***: ")
                     df[column] = serie_pct_change(df, serie_id, periods=12)
                     c.column = column
                     modification = True
@@ -1016,11 +1014,11 @@ class AnalysisForm(param.Parameterized):
                 continue
 
         if modification:
-            print("*** Analysis Updated DataSource ***")
+            logging.debug("*** Analysis Updated DataSource ***")
             self.df = df
             self.data_source = ColumnDataSource(df)
 
-        print(self.df.columns)
+        logging.debug(self.df.columns)
 
         #return self.data_source
 
@@ -1030,14 +1028,14 @@ class AnalysisForm(param.Parameterized):
 
     @param.depends('action_update_analysis', 'chart_forms')
     def view(self):
-        print("***** Analysis View *********")
+        logging.debug("***** Analysis View *********")
         # Arreglar esto aqui ya que al traer el dato modifica el datasource
         #self.data_source = self.get_data_source()
         self.get_data_source()
         return pn.GridBox(*[c.panel() for c in self.chart_forms], ncols=self.parent.plot_by_row)
 
     def panel(self, plot_by_row):
-        print("********** Analysis Panel ****************")
+        logging.debug("********** Analysis Panel ****************")
         return pn.Column(self.param, self.view)
 
     def __repr__(self, *_):
@@ -1065,8 +1063,6 @@ class SeriesForm(param.Parameterized):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        # self.checkbox_with_end_date.param.watch(self.disable_end_date, ['value'], onlychanged=False)
-
         self.button_add_serie.param.watch(self.add_serie_buttom, 'value')
         #self.button_create_analisis.param.watch(self.create_analysis, 'value')
 
@@ -1077,15 +1073,6 @@ class SeriesForm(param.Parameterized):
 
         self.alerts = []
         self.search_result = []
-
-        """
-        self.view = pn.Param(self,
-            widgets = {
-                "action_add_analysis": {"button_type": "primary"},
-                "action_create_analysis": {"button_type": "success"},
-            }
-        )
-        """
 
     def add_analysis(self, **kwargs):
         new_analysis = AnalysisForm(parent=self, **kwargs)
@@ -1181,6 +1168,8 @@ class SeriesForm(param.Parameterized):
         current_analysis.add_chart(serie_data)
         #current_analysis.param.trigger('update_df_event')
 
+        self.param.trigger('action_update_tabs')
+
         bootstrap.close_modal()
 
     @param.depends('action_update_alerts', watch=False)
@@ -1240,9 +1229,7 @@ class SeriesForm(param.Parameterized):
             )
         return pn.Column("**Search Results:**", pn.GridBox(*rows, ncols=4)) if len(rows) > 0 else None
 
-    #@param.depends('action_new_analysis')
     def create_analysis(self, event):
-        print("Name Analysis: ", self.selected_analysis_name)
         if self.selected_analysis_name == "":
             self.alerts.append("Digite un nombre para el nuevo analisis.")
             self.param.trigger('action_update_alerts')
@@ -1284,6 +1271,7 @@ bootstrap.sidebar.append(series_form.button_open_modal)
 
 bootstrap.sidebar.append(toggle1)
 bootstrap.sidebar.append(series_form.param)
+"""
 bootstrap.sidebar.append(checkbox_crisis)
 bootstrap.sidebar.append(checkbox_qe)
 bootstrap.sidebar.append(checkbox_qt)
@@ -1292,6 +1280,8 @@ bootstrap.sidebar.append(checkbox_enable_highlight)
 bootstrap.sidebar.append(checkbox_enable_syncronize_chart)
 bootstrap.sidebar.append(checkbox_enable_vertical_tooltip)
 bootstrap.sidebar.append(checkbox_enable_horizontal_tooltip)
+
+"""
 
 """
 bootstrap.sidebar.append(pn.Card(gauge, title="Bitcoin Fear and Greed"))
