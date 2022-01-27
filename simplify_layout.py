@@ -27,7 +27,6 @@ import random
 import param
 import panel as pn
 
-
 # Config Logging
 logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
 # logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', filename='main.log', level=logging.DEBUG)
@@ -122,7 +121,8 @@ category_list = ['US IR and Yields', 'Indicator', 'Money Markets', 'US Credit', 
 
 list_ts = [
     # Fear and Greed
-    {'tick': 'BTCFNG', 'name': 'BITCOIN Fear and Greed', 'source': bitcoin_fear_and_greed, 'freq': 'D', 'category': 'Indicator'},
+    {'tick': 'BTCFNG', 'name': 'BITCOIN Fear and Greed', 'source': bitcoin_fear_and_greed, 'freq': 'D',
+     'category': 'Indicator'},
 
     # Major Index
     {'tick': 'SP500', 'name': 'S&P 500', 'source': 'fred', 'freq': 'D', 'category': 'Index'},
@@ -232,6 +232,7 @@ list_ts = [
 def serie_pct_change(df, serie_id, periods=12):
     return df[serie_id].pct_change(periods=periods) * 100
 
+
 def serie_differentiation(df, serie_id, lags=1):
     mask = df['{}_base'.format(serie_id)] == 1
     return df[mask][serie_id].diff(periods=lags)
@@ -246,6 +247,7 @@ def get_name_list_search():
         new_list.append(name + " - " + tick)
 
     return new_list
+
 
 """
 def create_fig(title, legend_label, x_label, y_label, source, x, y, x_data_range, tooltip_format, vtooltip=False,
@@ -288,6 +290,7 @@ def create_fig(title, legend_label, x_label, y_label, source, x, y, x_data_range
     return fig, horizontal_hovertool_fig, vertical_hovertool_fig
 """
 
+
 def create_fig(title, legend_label, x_label, y_label, source, x, y, x_data_range, tooltip_format, vtooltip=False,
                htooltip=False, tools=None, view=None, secondary_plot=False):
     # create a new plot and share only one range
@@ -297,12 +300,11 @@ def create_fig(title, legend_label, x_label, y_label, source, x, y, x_data_range
 
     line = fig.line(x=x, y=y, source=source, name="line", legend_label=legend_label, line_width=2)
     cr = fig.circle(x=x, y=y, source=source, name="cr", size=10,
-                      fill_color="grey", hover_fill_color="firebrick",
-                      fill_alpha=0.05, hover_alpha=0.3,
-                      line_color=None, hover_line_color="white")
+                    fill_color="grey", hover_fill_color="firebrick",
+                    fill_alpha=0.05, hover_alpha=0.3,
+                    line_color=None, hover_line_color="white")
 
     # print("*** Create Fig Method ***: ", legend_label)
-    #cr.visible = False
 
     horizontal_hovertool_fig = None
     vertical_hovertool_fig = None
@@ -311,7 +313,7 @@ def create_fig(title, legend_label, x_label, y_label, source, x, y, x_data_range
         horizontal_hovertool_fig = HoverTool(tooltips=None, renderers=[cr], names=['cr'], mode='hline')
         fig.add_tools(horizontal_hovertool_fig)
     if vtooltip:
-        #vertical_hovertool_fig = HoverTool(tooltips=tooltip_format, renderers=[line], names=['line'], formatters={'@date': 'datetime'}, mode='vline')
+        # vertical_hovertool_fig = HoverTool(tooltips=tooltip_format, renderers=[line], names=['line'], formatters={'@date': 'datetime'}, mode='vline')
         vertical_hovertool_fig = HoverTool(tooltips=None, renderers=[cr], mode='vline')
         fig.add_tools(vertical_hovertool_fig)
 
@@ -332,6 +334,7 @@ def combine_with_releases(df_base, df_releases, prefix_column='custom'):
     # df_results = pd.concat([df_base, df_rel], axis=1)
 
     return df_concat
+
 
 df_list = []
 df_result = None
@@ -385,7 +388,6 @@ yield_source = ColumnDataSource(data=df_yields)
 main_source = ColumnDataSource(df_result)
 """
 
-
 # ****************************************** Global Variables ***************************
 # analist_dict format
 # {"Default": [{'tick': "", "category": "", "name": "", "freq": ""},]}
@@ -400,7 +402,6 @@ if not os.path.exists(FIDI_PATH):
     os.mkdir(FIDI_PATH)
     os.mkdir(ANALYSIS_PATH)
 
-
 analisis_list = []
 analisis_dict = {}
 fig_dict = {}
@@ -408,7 +409,6 @@ fig_dict = {}
 start_date = None
 end_date = None
 x_data_range = None
-
 
 fig_list = []
 horizontal_hover_tool_list = []
@@ -418,14 +418,13 @@ tools = ['pan', 'reset', 'save', 'xwheel_zoom', 'box_select', 'lasso_select']
 crosshair = CrosshairTool(dimensions="both")
 
 
-
 class ManagerData:
     def __init__(self):
         pass
 
+
 # ************************************** Load Analysis *********************************************
 logging.info("[+] Cargando datos...")
-
 
 for file in os.listdir(ANALYSIS_PATH):
     if file.endswith(".pkl"):
@@ -460,7 +459,9 @@ for file in os.listdir(ANALYSIS_PATH):
             column = s['column']
 
             # Add Info Series in List
-            analisis_dict[name_analysis]['series'].append({"serie_id": serie_id, "source": source, 'units': units, 'units_show': units, 'freq': freq, 'serie_name': serie_name, 'column': column})
+            analisis_dict[name_analysis]['series'].append(
+                {"serie_id": serie_id, "source": source, 'units': units, 'units_show': units, 'freq': freq,
+                 'serie_name': serie_name, 'column': column})
 
             # Temporal Dataframe
             df = None
@@ -470,15 +471,6 @@ for file in os.listdir(ANALYSIS_PATH):
                 df = source()
             elif source == 'fred':
                 df = get_fred_dataset(serie_id, rename_column=serie_id)
-
-                serie_data = fred.search_for_series([serie_id], limit=20)
-
-                if re.search('Daily*', serie_data['seriess'][0]['frequency']):
-                    min_date = df.index.min()
-                    max_date = df.index.max()
-                    # print(pd.date_range(start=min_date, end=max_date, freq=pd.offsets.MonthBegin(1)))
-                    df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
-
                 df.loc[:, "{}_{}".format(serie_id, 'base')] = 1
             elif source == 'quandl':
                 df = get_quandl_dataset(serie_id)
@@ -490,11 +482,11 @@ for file in os.listdir(ANALYSIS_PATH):
                 df.loc[:, "{}_pct1".format(serie_id)] = serie_pct_change(df, serie_id, periods=1)
                 # df.drop(serie_id, axis=1, inplace=True)
 
-            #df.fillna(method='ffill', inplace=True)
+            # df.fillna(method='ffill', inplace=True)
             list_df_analisis.append(df)
 
         df_aux = pd.concat(list_df_analisis, axis=1)
-        #df_aux.fillna(method='ffill', inplace=True)
+        # df_aux.fillna(method='ffill', inplace=True)
 
         columns = [c for c in df.columns if not re.search("_base$", c)]
 
@@ -509,8 +501,6 @@ for file in os.listdir(ANALYSIS_PATH):
         analisis_dict[name_analysis]['end_date'] = df_aux.date.max()
 
         analisis_dict[name_analysis]['x_data_range'] = DataRange1d(start=df_aux.date.min(), end=df_aux.date.max())
-
-
 
 # ****************************************** Create Figures *******************************
 """
@@ -572,10 +562,8 @@ for k, ts in analisis_dict.items():
             vertical_hover_tool_list.append(v_hovertool)
 """
 
-
 # Use js_link to connect button active property to glyph visible property
 toggle1 = Toggle(label="Show Depression / Recession", button_type="success", active=True)
-
 
 # for d in fig_list:
 #    f = d['figure']
@@ -589,7 +577,6 @@ callback_figs = CustomJS(args=dict(span=current_time), code="""
 span.location = cb_obj.x;
 console.log(new Date(cb_obj.x));
 """)
-
 
 
 def point_event_callback(event):
@@ -611,6 +598,7 @@ def point_event_callback(event):
     except:
         pass
 
+
 """
 for k, fig_lst in fig_dict.items():
     for d in fig_lst:
@@ -630,6 +618,7 @@ def enable_vertical_hovertool_callback(event):
     for d in fig_list:
         f = d['figure']
         f.toolbar.active_inspect = None
+
 
 # ************************************* Methods ***********************************
 def create_ts(source, x_data_range, **kwargs):
@@ -661,17 +650,17 @@ def add_current_time_span(fig):
     fig.js_on_event('tap', callback_figs)
     # f.on_event(Tap, point_event_callback)
     # Actualizacion de la Yield Curve
-    #fig.on_event('tap', point_event_callback)
+    # fig.on_event('tap', point_event_callback)
     # f.on_event("mousemove", point_event_callback)
 
 
 def add_auto_adjustment_y(fig, source, column):
-    #source = ColumnDataSource(dict(index=df.date, x=df[column]))
+    # source = ColumnDataSource(dict(index=df.date, x=df[column]))
 
     callback_rescale = CustomJS(args=dict(y_range=fig.y_range, source=source, column=column), code='''
         console.log(source.data[column]);
         clearTimeout(window._autoscale_timeout);
- 
+
         var index = source.data.index,
             x = source.data[column],
             start = cb_obj.start,
@@ -716,7 +705,6 @@ def add_recession_info(fig):
         toggle1.js_link('active', r, 'visible')
 
 
-
 def add_chairman_fed(fig):
     df_chairman = pd.read_csv(os.path.join(BASE_DIR, "src", "dataset", "chairmanfed.csv"))
     df_chairman['start'] = pd.to_datetime(df_chairman['start'], format="%d/%m/%Y")
@@ -739,7 +727,7 @@ def add_chairman_fed(fig):
 
     for c in list_chairman_fed:
         fig.add_layout(c)
-        #toggle1.js_link('active', r, 'visible')
+        # toggle1.js_link('active', r, 'visible')
 
 
 def add_qe(fig):
@@ -773,7 +761,7 @@ def add_qe(fig):
 
     for c in list_chairman_fed:
         fig.add_layout(c)
-        #toggle1.js_link('active', r, 'visible')
+        # toggle1.js_link('active', r, 'visible')
 
     """
     arrow_style = dict(facecolor='black', edgecolor='white', shrink=0.05)
@@ -785,7 +773,6 @@ def add_qe(fig):
     ax.annotate('QE3', xy=('2012-09-13', 0), xytext=('2012-09-13', -8), size=12, ha='center', arrowprops=arrow_style)
     ax.annotate('Tapering', xy=('2013-12-18', 0), xytext=('2013-12-18', -8), size=12, ha='center', arrowprops=arrow_style)
     """
-
 
 
 def layout_row(list_figs, figs_per_row):
@@ -806,14 +793,13 @@ def layout_row(list_figs, figs_per_row):
     return list_result
 
 
-
 class ChartForm(param.Parameterized):
 
     def __init__(self, **kwargs):
         self.serie_id = kwargs.pop('serie_id', None)
         self.serie_name = kwargs.pop('serie_name', None)
         self.column = kwargs.pop('column', None)
-        #self.column_show = kwargs.pop('column_show', self.column)
+        # self.column_show = kwargs.pop('column_show', self.column)
         self.parent = kwargs.pop('parent', None)
         self.freq = kwargs.pop('freq', None)
         self.units = kwargs.pop('units', None)
@@ -829,47 +815,13 @@ class ChartForm(param.Parameterized):
         elif re.search("_pct1", self.column):
             select_value = 'Percentage Change'
 
-        self.select_processing_2 = pn.widgets.Select(name='Processing', value=select_value, options=['Normal', 'Percentage Change', 'Percentage Change from Year Ago'])
+        self.select_processing_2 = pn.widgets.Select(name='Processing', value=select_value,
+                                                     options=['Normal', 'Percentage Change',
+                                                              'Percentage Change from Year Ago'])
         self.select_processing_2.param.watch(self.set_column, 'value')
 
-        fg, h_hovertool, v_hovertool = create_ts(source=self.parent.data_source, x_data_range=self.parent.x_data_range,
-                                                 column=self.column, serie_name=self.serie_name, freq=self.freq,
-                                                 units=self.units_show)
-        add_recession_info(fg)
-        add_current_time_span(fg)
-        # add_auto_adjustment_y(fg, self.parent.data_source, self.column)
-        fg.add_tools(self.parent.crosshair)
-
-        """
-        source = ColumnDataSource({'date': self.parent.df.date, self.column: self.parent.df[self.column]})
-        fg.x_range.js_on_change('start', CustomJS(args=dict(y_range=fg.y_range, source=source), code='''
-            console.log(source.data["%s"]);
-            clearTimeout(window._autoscale_timeout);
-
-            var index = source.data.date,
-                x = source.data["%s"],
-                start = cb_obj.start,
-                end = cb_obj.end,
-                min = 1e10,
-                max = -1;
-            
-            for (var i=0; i < index.length; ++i) {
-                if (start <= index[i] && index[i] <= end) {
-                    max = Math.max(x[i], max);
-                    min = Math.min(x[i], min);
-                }
-            }
-            var pad = (max - min) * .05;
-
-            window._autoscale_timeout = setTimeout(function() {
-                y_range.start = min - pad;
-                y_range.end = max + pad;
-            }, 50);
-        ''' %   (self.column)))
-        """
-        self.fig = fg
-        self.h_hovertool = h_hovertool
-        self.v_hovertool = v_hovertool
+        self.h_hovertool = None
+        self.v_hovertool = None
 
     def set_column(self, event):
         processing = event.new
@@ -896,24 +848,52 @@ class ChartForm(param.Parameterized):
             self.column = serie_id
             self.units_show = self.units
 
-        self.update_plot(self.column)
-
-    def update_plot(self, column):
-        line = self.fig.select_one({'name': 'line'})
-        cr = self.fig.select_one({'name': 'cr'})
-
-        line.glyph.y = column
-        cr.glyph.y = column
-
-        # Set Name of legent
-        self.fig.legend[0].name = column
-
-    #@param.depends('select_processing')
+    # @param.depends('select_processing')
     def view(self):
-        #data_source = self.output()
+        # data_source = self.output()
         # print("******** Chart Form View**************")
         # print("************ Chart Form - Set column **************")
-        return self.fig
+        fg, h_hovertool, v_hovertool = create_ts(source=self.parent.data_source, x_data_range=self.parent.x_data_range,
+                                                 column=self.column, serie_name=self.serie_name, freq=self.freq,
+                                                 units=self.units_show)
+        add_recession_info(fg)
+        add_current_time_span(fg)
+        # add_auto_adjustment_y(fg, self.parent.data_source, self.column)
+        add_sync_crosshair(fg)
+
+        self.h_hovertool = h_hovertool
+        self.v_hovertool = v_hovertool
+
+        source = ColumnDataSource(dict(index=self.parent.df.date, x=self.parent.df[self.column]))
+
+        self.callback_rescale = CustomJS(args=dict(y_range=fg.y_range, source=source), code='''
+            console.log(source.data.index);
+            clearTimeout(window._autoscale_timeout);
+
+            var index = source.data.index,
+                x = source.data.x,
+                start = cb_obj.start,
+                end = cb_obj.end,
+                min = 1e10,
+                max = -0.1;
+
+            for (var i=0; i < index.length; ++i) {
+                if (start <= index[i] && index[i] <= end) {
+                    max = Math.max(x[i], max);
+                    min = Math.min(x[i], min);
+                }
+            }
+            var pad = (max - min) * .05;
+
+            window._autoscale_timeout = setTimeout(function() {
+                y_range.start = min - pad;
+                y_range.end = max + pad;
+            }, 50);
+        ''')
+
+        fg.x_range.js_on_change('start', self.callback_rescale)
+
+        return fg
 
     def panel(self):
         return pn.Card(pn.Column(self.view, self.select_processing_2), title=self.serie_name)
@@ -935,7 +915,6 @@ class ChartForm(param.Parameterized):
 
 
 class AnalysisForm(param.Parameterized):
-
     action_update_analysis = param.Action(lambda x: x.param.trigger('action_update_analysis'), label='Update')
     action_save_analysis = param.Action(lambda x: x.param.trigger('action_save_analysis'), label='Save')
 
@@ -954,7 +933,6 @@ class AnalysisForm(param.Parameterized):
 
         self.parent = parent
         self.data_source = ColumnDataSource(self.df)
-        self.crosshair = CrosshairTool(dimensions="both")
 
         self.param.watch(self.save_analysis, 'action_save_analysis')
 
@@ -982,7 +960,7 @@ class AnalysisForm(param.Parameterized):
 
         return chart_form
 
-    #@param.output(ColumnDataSource)
+    # @param.output(ColumnDataSource)
     def get_data_source(self):
         # print("**** Analysis Update Data Source *****")
         modification = False
@@ -1029,14 +1007,9 @@ class AnalysisForm(param.Parameterized):
         if modification:
             print("*** Analysis Updated DataSource ***")
             self.df = df
-            self.data_source.data = self.df
+            self.data_source = ColumnDataSource(df)
 
-        print(self.df.columns)
-
-        #return self.data_source
-
-    def update_data_source(self):
-        self.data_source.data = self.df
+        # return self.data_source
 
     def update_view(self, event):
         self.param.trigger('action_update_analysis')
@@ -1045,7 +1018,7 @@ class AnalysisForm(param.Parameterized):
     def view(self):
         # print("***** Analysis View *********")
         # Arreglar esto aqui ya que al traer el dato modifica el datasource
-        #self.data_source = self.get_data_source()
+        # self.data_source = self.get_data_source()
         self.get_data_source()
         return pn.GridBox(*[c.panel() for c in self.chart_forms], ncols=self.parent.plot_by_row)
 
@@ -1062,16 +1035,19 @@ class SeriesForm(param.Parameterized):
 
     autocomplete_search_serie = pn.widgets.TextInput(name='Search Serie', placeholder='Ticker or Serie Name')
 
-    button_open_modal = pn.widgets.Button(name='Add Serie', width_policy='fit', height_policy='fit', button_type='primary')
-    button_add_serie = pn.widgets.Button(name='Add Serie', width_policy='fit', height_policy='fit', button_type='primary')
-    #button_create_analisis = pn.widgets.Button(name='New Analysis', button_type='success')
+    button_open_modal = pn.widgets.Button(name='Add Serie', width_policy='fit', height_policy='fit',
+                                          button_type='primary')
+    button_add_serie = pn.widgets.Button(name='Add Serie', width_policy='fit', height_policy='fit',
+                                         button_type='primary')
+    # button_create_analisis = pn.widgets.Button(name='New Analysis', button_type='success')
 
     selected_analysis_name = param.String(default="")
     action_new_analysis = param.Action(lambda x: x.param.trigger('action_new_analysis'), label='New Analysis')
 
     action_update_tabs = param.Action(lambda x: x.param.trigger('action_update_tabs'), label='Update Tabs')
     action_update_alerts = param.Action(lambda x: x.param.trigger('action_update_alerts'), label='Update Alerts')
-    action_update_search_results = param.Action(lambda x: x.param.trigger('action_update_search_results'), label='Update Search Result')
+    action_update_search_results = param.Action(lambda x: x.param.trigger('action_update_search_results'),
+                                                label='Update Search Result')
 
     analysis_list = param.List([], item_type=AnalysisForm)
 
@@ -1079,7 +1055,7 @@ class SeriesForm(param.Parameterized):
         super().__init__(**kwargs)
 
         self.button_add_serie.param.watch(self.add_serie_buttom, 'value')
-        #self.button_create_analisis.param.watch(self.create_analysis, 'value')
+        # self.button_create_analisis.param.watch(self.create_analysis, 'value')
 
         self.param.watch(self.create_analysis, 'action_new_analysis')
 
@@ -1102,8 +1078,8 @@ class SeriesForm(param.Parameterized):
 
             for s in series['seriess']:
                 t = {"name": s['title'], "id": s['id'], 'observation_start': s['observation_start'],
-                                       'observation_end': s['observation_end'], 'frequency': s['frequency'], 'units': s['units'],
-                                       'seasonal_adjustment': s['seasonal_adjustment'], 'notes': ''}
+                     'observation_end': s['observation_end'], 'frequency': s['frequency'], 'units': s['units'],
+                     'seasonal_adjustment': s['seasonal_adjustment'], 'notes': ''}
                 self.search_result.append(t)
 
             self.param.trigger('action_update_search_results')
@@ -1139,25 +1115,9 @@ class SeriesForm(param.Parameterized):
     def add_serie_buttom(self, event):
         logging.info("[+] Agregando nueva serie de tiempo ...")
         serie_id = event.obj.name
-
-        # Serie Information
-        serie_data = None
-
-        for s in self.search_result:
-            if s['id'] == serie_id:
-                serie_data = {"serie_id": s['id'], "source": "fred", 'units': s['units'], 'freq': s['frequency'], 'serie_name': s['name'], 'column': s['id']}
-                break
-
         current_analysis = self._get_current_analysis()
 
         df_serie = get_fred_dataset(serie_id, rename_column=serie_id)
-
-        if re.search('Daily*', serie_data['freq']):
-            min_date = df_serie.index.min()
-            max_date = df_serie.index.max()
-            # print(pd.date_range(start=min_date, end=max_date, freq=pd.offsets.MonthBegin(1)))
-            df_serie = df_serie.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
-
         df_serie.loc[:, "{}_{}".format(serie_id, 'base')] = 1
         # df_serie.fillna(method='ffill', inplace=True)
 
@@ -1170,13 +1130,22 @@ class SeriesForm(param.Parameterized):
         else:
             df = df_serie
 
-        #df.fillna(method='ffill', inplace=True)
+        # df.fillna(method='ffill', inplace=True)
 
         columns = [c for c in df.columns if not re.search("_base$", c)]
 
         df.loc[:, columns] = df[columns].fillna(method='ffill')
 
         df = df.reset_index()
+
+        # Serie Information
+        serie_data = None
+
+        for s in self.search_result:
+            if s['id'] == serie_id:
+                serie_data = {"serie_id": s['id'], "source": "fred", 'units': s['units'], 'freq': s['frequency'],
+                              'serie_name': s['name'], 'column': s['id']}
+                break
 
         # ********************* Set Dataset ******************************
         current_analysis.df = df
@@ -1188,7 +1157,7 @@ class SeriesForm(param.Parameterized):
         current_analysis.x_data_range = DataRange1d(start=df.date.min(), end=df.date.max())
 
         # Update DataSource
-        current_analysis.update_data_source()
+        current_analysis.data_source = ColumnDataSource(df)
 
         current_analysis.add_chart(serie_data)
         # current_analysis.param.trigger('update_df_event')
@@ -1239,14 +1208,20 @@ class SeriesForm(param.Parameterized):
         logo = 'https://fred.stlouisfed.org/images/masthead-88h-2x.png'
         header_color = 'black'
         header_background = '#2f2f2f'
+        fed_base_link = "https://fred.stlouisfed.org/series/{}"
 
         for r in self.search_result:
             button_select = pn.widgets.Button(name=r['id'])
             button_select.param.watch(self.add_serie_buttom, 'value')
 
+            button_open_browser = pn.widgets.Button(name='View', button_type='primary')
+            button_open_browser.js_on_click(args={'target': fed_base_link.format(r['id'])},
+                                            code='window.open(target.value)')
+
             rows.append(pn.Card(
-                    pn.Column(description.format(r['name'], r['observation_start'], r['observation_end'], r['frequency'], r['notes']), button_select),
-                    header=pn.panel(logo, height=40), header_color=header_color, header_background=header_background)
+                pn.Column(description.format(r['name'], r['observation_start'], r['observation_end'], r['frequency'],
+                                             r['notes']), button_open_browser, button_select),
+                header=pn.panel(logo, height=40), header_color=header_color, header_background=header_background)
             )
 
         return pn.Column("**Search Results:**", pn.GridBox(*rows, ncols=4)) if len(rows) > 0 else None
@@ -1284,10 +1259,8 @@ for k in analisis_dict.keys():
         # print(s)
         current_analysis.add_chart(s)
 
-
 alerts = pn.Row(pn.panel(series_form.get_alerts, width=300))
 container = pn.Row(pn.panel(series_form.get_tabs, width=300))
-
 
 bootstrap.sidebar.append(series_form.button_open_modal)
 # bootstrap.sidebar.append(series_form.button_create_analisis)

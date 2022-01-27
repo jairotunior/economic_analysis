@@ -1,0 +1,265 @@
+25-Jan-22 14:24:48 - [+] Cargando datos...
+25-Jan-22 14:24:48 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:24:49 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=FEDFUNDS&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 7190
+25-Jan-22 14:24:49 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:24:49 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=CPIAUCSL&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 8597
+25-Jan-22 14:24:50 - [+] Renderizando informacion...
+25-Jan-22 14:24:50 - [+] Analisis: Analisis 1
+25-Jan-22 14:24:50 - [{'serie_id': 'FEDFUNDS', 'source': 'fred', 'units': 'Percent', 'units_show': 'Percent', 'freq': 'Monthly', 'serie_name': 'Federal Funds Effective Rate', 'column': 'FEDFUNDS'}, {'serie_id': 'CPIAUCSL', 'source': 'fred', 'units': 'Index 1982-1984=100', 'units_show': 'Index 1982-1984=100', 'freq': 'Monthly', 'serie_name': 'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average', 'column': 'CPIAUCSL_pct12'}]
+25-Jan-22 14:24:50 - {'serie_id': 'FEDFUNDS', 'source': 'fred', 'units': 'Percent', 'units_show': 'Percent', 'freq': 'Monthly', 'serie_name': 'Federal Funds Effective Rate', 'column': 'FEDFUNDS'}
+25-Jan-22 14:24:50 - {'serie_id': 'CPIAUCSL', 'source': 'fred', 'units': 'Index 1982-1984=100', 'units_show': 'Index 1982-1984=100', 'freq': 'Monthly', 'serie_name': 'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average', 'column': 'CPIAUCSL_pct12'}
+25-Jan-22 14:24:50 - ********** Analysis Panel ****************
+25-Jan-22 14:24:50 - ***** Analysis View *********
+25-Jan-22 14:24:50 - **** Analysis Update Data Source *****
+25-Jan-22 14:24:50 - Index(['date', 'FEDFUNDS', 'CPIAUCSL', 'CPIAUCSL_pct12'], dtype='object')
+25-Jan-22 14:24:50 - ******** Chart Form View**************
+25-Jan-22 14:24:50 - ************ Chart Form - Set column **************
+25-Jan-22 14:24:50 - ******** Chart Form View**************
+25-Jan-22 14:24:50 - ************ Chart Form - Set column **************
+25-Jan-22 14:26:19 - [+] Cargando datos...
+25-Jan-22 14:26:19 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:26:20 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=FEDFUNDS&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 7190
+25-Jan-22 14:26:20 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:26:20 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=CPIAUCSL&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 8597
+25-Jan-22 14:26:20 - [+] Renderizando informacion...
+25-Jan-22 14:26:20 - [+] Analisis: Analisis 1
+25-Jan-22 14:26:20 - [{'serie_id': 'FEDFUNDS', 'source': 'fred', 'units': 'Percent', 'units_show': 'Percent', 'freq': 'Monthly', 'serie_name': 'Federal Funds Effective Rate', 'column': 'FEDFUNDS'}, {'serie_id': 'CPIAUCSL', 'source': 'fred', 'units': 'Index 1982-1984=100', 'units_show': 'Index 1982-1984=100', 'freq': 'Monthly', 'serie_name': 'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average', 'column': 'CPIAUCSL_pct12'}]
+25-Jan-22 14:26:20 - {'serie_id': 'FEDFUNDS', 'source': 'fred', 'units': 'Percent', 'units_show': 'Percent', 'freq': 'Monthly', 'serie_name': 'Federal Funds Effective Rate', 'column': 'FEDFUNDS'}
+25-Jan-22 14:26:20 - {'serie_id': 'CPIAUCSL', 'source': 'fred', 'units': 'Index 1982-1984=100', 'units_show': 'Index 1982-1984=100', 'freq': 'Monthly', 'serie_name': 'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average', 'column': 'CPIAUCSL_pct12'}
+25-Jan-22 14:26:20 - ********** Analysis Panel ****************
+25-Jan-22 14:26:20 - ***** Analysis View *********
+25-Jan-22 14:26:20 - **** Analysis Update Data Source *****
+25-Jan-22 14:26:20 - Index(['date', 'FEDFUNDS', 'CPIAUCSL', 'CPIAUCSL_pct12'], dtype='object')
+25-Jan-22 14:26:20 - ******** Chart Form View**************
+25-Jan-22 14:26:20 - ************ Chart Form - Set column **************
+25-Jan-22 14:26:20 - ******** Chart Form View**************
+25-Jan-22 14:26:20 - ************ Chart Form - Set column **************
+25-Jan-22 14:26:20 - [+] Obteniendo resultados para: 
+25-Jan-22 14:26:21 - Using selector: SelectSelector
+25-Jan-22 14:26:22 - 200 GET / (127.0.0.1) 948.04ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/css/alerts.css (127.0.0.1) 369.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/css/widgets.css (127.0.0.1) 2.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/css/card.css (127.0.0.1) 3.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/css/dataframe.css (127.0.0.1) 5.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/css/json.css (127.0.0.1) 7.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/css/loading.css (127.0.0.1) 9.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/css/markdown.css (127.0.0.1) 11.00ms
+25-Jan-22 14:26:23 - 200 GET /static/js/bokeh.min.js?v=b3e0592a1e90448fa40dcddd5cd5217dcd6b3c7dd368020f6a8e4be4fdd1adbdeb2824eb75ab4f5120c80dc7684f8ff2aa2f8b00d6f393108c96d2f6f2cf0297 (127.0.0.1) 7.00ms
+25-Jan-22 14:26:23 - 200 GET /static/js/bokeh-gl.min.js?v=863c26b3d7cbcf2a0dbf119589404b3ca66734754cd0af1d6e6ca17679ae711126917f171667194a6f04765eba06d9eb2d7d1f2ba7ef8fee420b9244557386f8 (127.0.0.1) 9.00ms
+25-Jan-22 14:26:23 - 200 GET /static/js/bokeh-widgets.min.js?v=0ede1975746c96e47b24a08c83a45a9282b6524986185f620debadba5132e16c43f941626151d70d779dde7ff63ef84830eb4b277291752aea5176a795b00cec (127.0.0.1) 10.00ms
+25-Jan-22 14:26:23 - 200 GET /static/js/bokeh-tables.min.js?v=e075943aa7fac687b27889393d32dde4c6dd9fc8ca7eeb3864ce96011372ea45d3807d8a2d15b322b051170360eda59a5cd9384219c4b150b271b864df4b07d3 (127.0.0.1) 11.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/panel.min.js?v=71c15b31e84b03c9d56bcfbb475ed33ecbb8ad52022526853c81845b7008dda8 (127.0.0.1) 14.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/bundled/css/bootstrap/4.4.1/css/bootstrap.min.css (127.0.0.1) 14.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/bundled/bootstraptemplate/bootstrap.css (127.0.0.1) 1.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/bundled/defaulttheme/default.css (127.0.0.1) 2.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/bundled/js/jquery-3.5.1.slim.min.js (127.0.0.1) 3.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/bundled/js/bootstrap/4.4.1/js/bootstrap.min.js (127.0.0.1) 2.00ms
+25-Jan-22 14:26:23 - 200 GET /static/extensions/panel/icons/favicon.ico (127.0.0.1) 5.00ms
+25-Jan-22 14:26:23 - 101 GET /ws (127.0.0.1) 2.00ms
+25-Jan-22 14:26:50 - [+] Cargando datos...
+25-Jan-22 14:26:50 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:26:51 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=FEDFUNDS&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 7190
+25-Jan-22 14:26:51 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:26:51 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=CPIAUCSL&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 8597
+25-Jan-22 14:26:51 - [+] Renderizando informacion...
+25-Jan-22 14:26:51 - [+] Analisis: Analisis 1
+25-Jan-22 14:26:51 - [{'serie_id': 'FEDFUNDS', 'source': 'fred', 'units': 'Percent', 'units_show': 'Percent', 'freq': 'Monthly', 'serie_name': 'Federal Funds Effective Rate', 'column': 'FEDFUNDS'}, {'serie_id': 'CPIAUCSL', 'source': 'fred', 'units': 'Index 1982-1984=100', 'units_show': 'Index 1982-1984=100', 'freq': 'Monthly', 'serie_name': 'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average', 'column': 'CPIAUCSL_pct12'}]
+25-Jan-22 14:26:51 - {'serie_id': 'FEDFUNDS', 'source': 'fred', 'units': 'Percent', 'units_show': 'Percent', 'freq': 'Monthly', 'serie_name': 'Federal Funds Effective Rate', 'column': 'FEDFUNDS'}
+25-Jan-22 14:26:51 - {'serie_id': 'CPIAUCSL', 'source': 'fred', 'units': 'Index 1982-1984=100', 'units_show': 'Index 1982-1984=100', 'freq': 'Monthly', 'serie_name': 'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average', 'column': 'CPIAUCSL_pct12'}
+25-Jan-22 14:26:51 - ********** Analysis Panel ****************
+25-Jan-22 14:26:51 - ***** Analysis View *********
+25-Jan-22 14:26:51 - **** Analysis Update Data Source *****
+25-Jan-22 14:26:51 - Index(['date', 'FEDFUNDS', 'CPIAUCSL', 'CPIAUCSL_pct12'], dtype='object')
+25-Jan-22 14:26:51 - ******** Chart Form View**************
+25-Jan-22 14:26:51 - ************ Chart Form - Set column **************
+25-Jan-22 14:26:51 - ******** Chart Form View**************
+25-Jan-22 14:26:51 - ************ Chart Form - Set column **************
+25-Jan-22 14:26:51 - [+] Obteniendo resultados para: 
+25-Jan-22 14:26:52 - Using selector: SelectSelector
+25-Jan-22 14:26:53 - 200 GET / (127.0.0.1) 964.01ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/css/alerts.css (127.0.0.1) 354.99ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/css/widgets.css (127.0.0.1) 3.00ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/css/card.css (127.0.0.1) 4.00ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/css/dataframe.css (127.0.0.1) 3.00ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/css/json.css (127.0.0.1) 4.00ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/css/loading.css (127.0.0.1) 3.00ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/css/markdown.css (127.0.0.1) 4.00ms
+25-Jan-22 14:26:53 - 200 GET /static/js/bokeh.min.js?v=b3e0592a1e90448fa40dcddd5cd5217dcd6b3c7dd368020f6a8e4be4fdd1adbdeb2824eb75ab4f5120c80dc7684f8ff2aa2f8b00d6f393108c96d2f6f2cf0297 (127.0.0.1) 3.00ms
+25-Jan-22 14:26:53 - 200 GET /static/js/bokeh-gl.min.js?v=863c26b3d7cbcf2a0dbf119589404b3ca66734754cd0af1d6e6ca17679ae711126917f171667194a6f04765eba06d9eb2d7d1f2ba7ef8fee420b9244557386f8 (127.0.0.1) 2.00ms
+25-Jan-22 14:26:53 - 200 GET /static/js/bokeh-widgets.min.js?v=0ede1975746c96e47b24a08c83a45a9282b6524986185f620debadba5132e16c43f941626151d70d779dde7ff63ef84830eb4b277291752aea5176a795b00cec (127.0.0.1) 3.00ms
+25-Jan-22 14:26:53 - 200 GET /static/js/bokeh-tables.min.js?v=e075943aa7fac687b27889393d32dde4c6dd9fc8ca7eeb3864ce96011372ea45d3807d8a2d15b322b051170360eda59a5cd9384219c4b150b271b864df4b07d3 (127.0.0.1) 4.00ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/panel.min.js?v=71c15b31e84b03c9d56bcfbb475ed33ecbb8ad52022526853c81845b7008dda8 (127.0.0.1) 5.00ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/bundled/css/bootstrap/4.4.1/css/bootstrap.min.css (127.0.0.1) 5.00ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/bundled/bootstraptemplate/bootstrap.css (127.0.0.1) 4.00ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/bundled/defaulttheme/default.css (127.0.0.1) 6.00ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/bundled/js/jquery-3.5.1.slim.min.js (127.0.0.1) 7.00ms
+25-Jan-22 14:26:53 - 200 GET /static/extensions/panel/bundled/js/bootstrap/4.4.1/js/bootstrap.min.js (127.0.0.1) 8.00ms
+25-Jan-22 14:26:54 - 200 GET /static/extensions/panel/icons/favicon.ico (127.0.0.1) 4.00ms
+25-Jan-22 14:26:54 - 101 GET /ws (127.0.0.1) 1.00ms
+25-Jan-22 14:28:44 - [+] Cargando datos...
+25-Jan-22 14:28:44 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:28:45 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=FEDFUNDS&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 7190
+25-Jan-22 14:28:45 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:28:45 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=CPIAUCSL&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 8597
+25-Jan-22 14:28:45 - [+] Renderizando informacion...
+25-Jan-22 14:28:45 - [+] Analisis: Analisis 1
+25-Jan-22 14:28:45 - [{'serie_id': 'FEDFUNDS', 'source': 'fred', 'units': 'Percent', 'units_show': 'Percent', 'freq': 'Monthly', 'serie_name': 'Federal Funds Effective Rate', 'column': 'FEDFUNDS'}, {'serie_id': 'CPIAUCSL', 'source': 'fred', 'units': 'Index 1982-1984=100', 'units_show': 'Index 1982-1984=100', 'freq': 'Monthly', 'serie_name': 'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average', 'column': 'CPIAUCSL_pct12'}]
+25-Jan-22 14:28:45 - {'serie_id': 'FEDFUNDS', 'source': 'fred', 'units': 'Percent', 'units_show': 'Percent', 'freq': 'Monthly', 'serie_name': 'Federal Funds Effective Rate', 'column': 'FEDFUNDS'}
+25-Jan-22 14:28:45 - {'serie_id': 'CPIAUCSL', 'source': 'fred', 'units': 'Index 1982-1984=100', 'units_show': 'Index 1982-1984=100', 'freq': 'Monthly', 'serie_name': 'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average', 'column': 'CPIAUCSL_pct12'}
+25-Jan-22 14:28:45 - ********** Analysis Panel ****************
+25-Jan-22 14:28:45 - ***** Analysis View *********
+25-Jan-22 14:28:45 - **** Analysis Update Data Source *****
+25-Jan-22 14:28:45 - Index(['date', 'FEDFUNDS', 'CPIAUCSL', 'CPIAUCSL_pct12'], dtype='object')
+25-Jan-22 14:28:45 - ******** Chart Form View**************
+25-Jan-22 14:28:45 - ************ Chart Form - Set column **************
+25-Jan-22 14:28:45 - ******** Chart Form View**************
+25-Jan-22 14:28:45 - ************ Chart Form - Set column **************
+25-Jan-22 14:28:46 - [+] Obteniendo resultados para: 
+25-Jan-22 14:28:46 - Using selector: SelectSelector
+25-Jan-22 14:28:47 - 200 GET / (127.0.0.1) 878.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/css/alerts.css (127.0.0.1) 416.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/css/widgets.css (127.0.0.1) 2.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/css/card.css (127.0.0.1) 2.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/css/json.css (127.0.0.1) 3.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/css/dataframe.css (127.0.0.1) 2.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/css/loading.css (127.0.0.1) 3.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/css/markdown.css (127.0.0.1) 4.00ms
+25-Jan-22 14:28:48 - 200 GET /static/js/bokeh-gl.min.js?v=863c26b3d7cbcf2a0dbf119589404b3ca66734754cd0af1d6e6ca17679ae711126917f171667194a6f04765eba06d9eb2d7d1f2ba7ef8fee420b9244557386f8 (127.0.0.1) 3.00ms
+25-Jan-22 14:28:48 - 200 GET /static/js/bokeh-widgets.min.js?v=0ede1975746c96e47b24a08c83a45a9282b6524986185f620debadba5132e16c43f941626151d70d779dde7ff63ef84830eb4b277291752aea5176a795b00cec (127.0.0.1) 4.00ms
+25-Jan-22 14:28:48 - 200 GET /static/js/bokeh-tables.min.js?v=e075943aa7fac687b27889393d32dde4c6dd9fc8ca7eeb3864ce96011372ea45d3807d8a2d15b322b051170360eda59a5cd9384219c4b150b271b864df4b07d3 (127.0.0.1) 3.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/bundled/css/bootstrap/4.4.1/css/bootstrap.min.css (127.0.0.1) 5.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/bundled/bootstraptemplate/bootstrap.css (127.0.0.1) 1.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/bundled/defaulttheme/default.css (127.0.0.1) 1.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/bundled/js/jquery-3.5.1.slim.min.js (127.0.0.1) 2.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/panel.min.js?v=71c15b31e84b03c9d56bcfbb475ed33ecbb8ad52022526853c81845b7008dda8 (127.0.0.1) 8.00ms
+25-Jan-22 14:28:48 - 200 GET /static/js/bokeh.min.js?v=b3e0592a1e90448fa40dcddd5cd5217dcd6b3c7dd368020f6a8e4be4fdd1adbdeb2824eb75ab4f5120c80dc7684f8ff2aa2f8b00d6f393108c96d2f6f2cf0297 (127.0.0.1) 9.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/bundled/js/bootstrap/4.4.1/js/bootstrap.min.js (127.0.0.1) 1.00ms
+25-Jan-22 14:28:48 - 200 GET /static/extensions/panel/icons/favicon.ico (127.0.0.1) 4.00ms
+25-Jan-22 14:28:48 - 101 GET /ws (127.0.0.1) 2.00ms
+25-Jan-22 14:30:34 - [+] Cargando datos...
+25-Jan-22 14:30:34 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:30:34 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=FEDFUNDS&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 7190
+25-Jan-22 14:30:34 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:30:35 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=CPIAUCSL&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 8597
+25-Jan-22 14:30:35 - [+] Renderizando informacion...
+25-Jan-22 14:30:35 - [+] Analisis: Analisis 1
+25-Jan-22 14:30:35 - [{'serie_id': 'FEDFUNDS', 'source': 'fred', 'units': 'Percent', 'units_show': 'Percent', 'freq': 'Monthly', 'serie_name': 'Federal Funds Effective Rate', 'column': 'FEDFUNDS'}, {'serie_id': 'CPIAUCSL', 'source': 'fred', 'units': 'Index 1982-1984=100', 'units_show': 'Index 1982-1984=100', 'freq': 'Monthly', 'serie_name': 'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average', 'column': 'CPIAUCSL_pct12'}]
+25-Jan-22 14:30:35 - {'serie_id': 'FEDFUNDS', 'source': 'fred', 'units': 'Percent', 'units_show': 'Percent', 'freq': 'Monthly', 'serie_name': 'Federal Funds Effective Rate', 'column': 'FEDFUNDS'}
+25-Jan-22 14:30:35 - {'serie_id': 'CPIAUCSL', 'source': 'fred', 'units': 'Index 1982-1984=100', 'units_show': 'Index 1982-1984=100', 'freq': 'Monthly', 'serie_name': 'Consumer Price Index for All Urban Consumers: All Items in U.S. City Average', 'column': 'CPIAUCSL_pct12'}
+25-Jan-22 14:30:35 - ********** Analysis Panel ****************
+25-Jan-22 14:30:35 - ***** Analysis View *********
+25-Jan-22 14:30:35 - **** Analysis Update Data Source *****
+25-Jan-22 14:30:35 - ** Analysis Processing Variable: Select(name='Processing', options=['Normal', 'Percentage Cha...], sizing_mode='stretch_width', value='Normal')
+25-Jan-22 14:30:35 - ** Analysis Serie: FEDFUNDS
+25-Jan-22 14:30:35 - ** Analysis Processing Variable: Select(name='Processing', options=['Normal', 'Percentage Cha...], sizing_mode='stretch_width', value='Percentage Change f...)
+25-Jan-22 14:30:35 - ** Analysis Serie: CPIAUCSL
+25-Jan-22 14:30:35 - ******** Chart Form View**************
+25-Jan-22 14:30:35 - ************ Chart Form - Set column **************
+25-Jan-22 14:30:35 - ******** Chart Form View**************
+25-Jan-22 14:30:35 - ************ Chart Form - Set column **************
+25-Jan-22 14:30:35 - [+] Obteniendo resultados para: 
+25-Jan-22 14:30:35 - Using selector: SelectSelector
+25-Jan-22 14:30:37 - 200 GET / (127.0.0.1) 1064.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/css/alerts.css (127.0.0.1) 386.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/css/widgets.css (127.0.0.1) 2.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/css/card.css (127.0.0.1) 3.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/css/dataframe.css (127.0.0.1) 4.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/css/json.css (127.0.0.1) 5.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/css/loading.css (127.0.0.1) 4.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/css/markdown.css (127.0.0.1) 5.00ms
+25-Jan-22 14:30:37 - 200 GET /static/js/bokeh.min.js?v=b3e0592a1e90448fa40dcddd5cd5217dcd6b3c7dd368020f6a8e4be4fdd1adbdeb2824eb75ab4f5120c80dc7684f8ff2aa2f8b00d6f393108c96d2f6f2cf0297 (127.0.0.1) 4.00ms
+25-Jan-22 14:30:37 - 200 GET /static/js/bokeh-gl.min.js?v=863c26b3d7cbcf2a0dbf119589404b3ca66734754cd0af1d6e6ca17679ae711126917f171667194a6f04765eba06d9eb2d7d1f2ba7ef8fee420b9244557386f8 (127.0.0.1) 4.00ms
+25-Jan-22 14:30:37 - 200 GET /static/js/bokeh-widgets.min.js?v=0ede1975746c96e47b24a08c83a45a9282b6524986185f620debadba5132e16c43f941626151d70d779dde7ff63ef84830eb4b277291752aea5176a795b00cec (127.0.0.1) 4.01ms
+25-Jan-22 14:30:37 - 200 GET /static/js/bokeh-tables.min.js?v=e075943aa7fac687b27889393d32dde4c6dd9fc8ca7eeb3864ce96011372ea45d3807d8a2d15b322b051170360eda59a5cd9384219c4b150b271b864df4b07d3 (127.0.0.1) 6.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/panel.min.js?v=71c15b31e84b03c9d56bcfbb475ed33ecbb8ad52022526853c81845b7008dda8 (127.0.0.1) 8.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/bundled/css/bootstrap/4.4.1/css/bootstrap.min.css (127.0.0.1) 8.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/bundled/bootstraptemplate/bootstrap.css (127.0.0.1) 2.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/bundled/defaulttheme/default.css (127.0.0.1) 3.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/bundled/js/jquery-3.5.1.slim.min.js (127.0.0.1) 3.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/bundled/js/bootstrap/4.4.1/js/bootstrap.min.js (127.0.0.1) 4.00ms
+25-Jan-22 14:30:37 - 200 GET /static/extensions/panel/icons/favicon.ico (127.0.0.1) 1.00ms
+25-Jan-22 14:30:37 - 101 GET /ws (127.0.0.1) 1.00ms
+25-Jan-22 14:33:49 - [+] Cargando datos...
+25-Jan-22 14:33:49 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:33:50 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=FEDFUNDS&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 7190
+25-Jan-22 14:33:50 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:33:50 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=CPIAUCSL&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 8597
+25-Jan-22 14:33:50 - [+] Renderizando informacion...
+25-Jan-22 14:33:51 - [+] Obteniendo resultados para: 
+25-Jan-22 14:33:51 - Using selector: SelectSelector
+25-Jan-22 14:33:52 - 200 GET / (127.0.0.1) 1120.00ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/css/alerts.css (127.0.0.1) 369.00ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/css/widgets.css (127.0.0.1) 1.99ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/css/card.css (127.0.0.1) 2.99ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/css/json.css (127.0.0.1) 2.99ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/css/dataframe.css (127.0.0.1) 4.00ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/css/markdown.css (127.0.0.1) 4.00ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/css/loading.css (127.0.0.1) 4.00ms
+25-Jan-22 14:33:53 - 200 GET /static/js/bokeh.min.js?v=b3e0592a1e90448fa40dcddd5cd5217dcd6b3c7dd368020f6a8e4be4fdd1adbdeb2824eb75ab4f5120c80dc7684f8ff2aa2f8b00d6f393108c96d2f6f2cf0297 (127.0.0.1) 3.00ms
+25-Jan-22 14:33:53 - 200 GET /static/js/bokeh-gl.min.js?v=863c26b3d7cbcf2a0dbf119589404b3ca66734754cd0af1d6e6ca17679ae711126917f171667194a6f04765eba06d9eb2d7d1f2ba7ef8fee420b9244557386f8 (127.0.0.1) 4.00ms
+25-Jan-22 14:33:53 - 200 GET /static/js/bokeh-widgets.min.js?v=0ede1975746c96e47b24a08c83a45a9282b6524986185f620debadba5132e16c43f941626151d70d779dde7ff63ef84830eb4b277291752aea5176a795b00cec (127.0.0.1) 4.00ms
+25-Jan-22 14:33:53 - 200 GET /static/js/bokeh-tables.min.js?v=e075943aa7fac687b27889393d32dde4c6dd9fc8ca7eeb3864ce96011372ea45d3807d8a2d15b322b051170360eda59a5cd9384219c4b150b271b864df4b07d3 (127.0.0.1) 5.00ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/panel.min.js?v=71c15b31e84b03c9d56bcfbb475ed33ecbb8ad52022526853c81845b7008dda8 (127.0.0.1) 8.00ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/bundled/css/bootstrap/4.4.1/css/bootstrap.min.css (127.0.0.1) 9.00ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/bundled/js/jquery-3.5.1.slim.min.js (127.0.0.1) 4.00ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/bundled/bootstraptemplate/bootstrap.css (127.0.0.1) 5.00ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/bundled/defaulttheme/default.css (127.0.0.1) 5.00ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/bundled/js/bootstrap/4.4.1/js/bootstrap.min.js (127.0.0.1) 6.99ms
+25-Jan-22 14:33:53 - 200 GET /static/extensions/panel/icons/favicon.ico (127.0.0.1) 2.00ms
+25-Jan-22 14:33:53 - 101 GET /ws (127.0.0.1) 2.00ms
+25-Jan-22 14:34:28 - [+] Cargando datos...
+25-Jan-22 14:34:28 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:34:28 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=FEDFUNDS&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 7190
+25-Jan-22 14:34:28 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:34:29 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=CPIAUCSL&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 8597
+25-Jan-22 14:34:29 - [+] Renderizando informacion...
+25-Jan-22 14:34:29 - [+] Obteniendo resultados para: 
+25-Jan-22 14:34:29 - Using selector: SelectSelector
+25-Jan-22 14:34:31 - 200 GET / (127.0.0.1) 1114.99ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/css/alerts.css (127.0.0.1) 369.00ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/css/widgets.css (127.0.0.1) 2.05ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/css/card.css (127.0.0.1) 2.00ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/css/dataframe.css (127.0.0.1) 2.00ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/css/json.css (127.0.0.1) 3.00ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/css/loading.css (127.0.0.1) 3.00ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/css/markdown.css (127.0.0.1) 4.00ms
+25-Jan-22 14:34:31 - 200 GET /static/js/bokeh.min.js?v=b3e0592a1e90448fa40dcddd5cd5217dcd6b3c7dd368020f6a8e4be4fdd1adbdeb2824eb75ab4f5120c80dc7684f8ff2aa2f8b00d6f393108c96d2f6f2cf0297 (127.0.0.1) 4.00ms
+25-Jan-22 14:34:31 - 200 GET /static/js/bokeh-gl.min.js?v=863c26b3d7cbcf2a0dbf119589404b3ca66734754cd0af1d6e6ca17679ae711126917f171667194a6f04765eba06d9eb2d7d1f2ba7ef8fee420b9244557386f8 (127.0.0.1) 4.00ms
+25-Jan-22 14:34:31 - 200 GET /static/js/bokeh-widgets.min.js?v=0ede1975746c96e47b24a08c83a45a9282b6524986185f620debadba5132e16c43f941626151d70d779dde7ff63ef84830eb4b277291752aea5176a795b00cec (127.0.0.1) 4.00ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/panel.min.js?v=71c15b31e84b03c9d56bcfbb475ed33ecbb8ad52022526853c81845b7008dda8 (127.0.0.1) 7.00ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/bundled/css/bootstrap/4.4.1/css/bootstrap.min.css (127.0.0.1) 11.00ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/bundled/bootstraptemplate/bootstrap.css (127.0.0.1) 3.99ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/bundled/defaulttheme/default.css (127.0.0.1) 5.00ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/bundled/js/jquery-3.5.1.slim.min.js (127.0.0.1) 6.00ms
+25-Jan-22 14:34:31 - 200 GET /static/extensions/panel/bundled/js/bootstrap/4.4.1/js/bootstrap.min.js (127.0.0.1) 7.00ms
+25-Jan-22 14:34:31 - 200 GET /static/js/bokeh-tables.min.js?v=e075943aa7fac687b27889393d32dde4c6dd9fc8ca7eeb3864ce96011372ea45d3807d8a2d15b322b051170360eda59a5cd9384219c4b150b271b864df4b07d3 (127.0.0.1) 21.99ms
+25-Jan-22 14:34:32 - 200 GET /static/extensions/panel/icons/favicon.ico (127.0.0.1) 4.00ms
+25-Jan-22 14:34:32 - 101 GET /ws (127.0.0.1) 2.00ms
+25-Jan-22 14:34:50 - [+] Cargando datos...
+25-Jan-22 14:34:50 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:34:54 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=FEDFUNDS&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 7190
+25-Jan-22 14:34:54 - Starting new HTTPS connection (1): api.stlouisfed.org:443
+25-Jan-22 14:34:54 - https://api.stlouisfed.org:443 "GET /fred/series/observations?series_id=CPIAUCSL&file_type=json&api_key=904849adbc7535798dd6aca2df87d228 HTTP/1.1" 200 8597
+25-Jan-22 14:34:54 - [+] Renderizando informacion...
+25-Jan-22 14:34:54 - [+] Obteniendo resultados para: 
+25-Jan-22 14:34:55 - Using selector: SelectSelector
+25-Jan-22 14:34:56 - 200 GET / (127.0.0.1) 922.00ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/css/alerts.css (127.0.0.1) 325.00ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/css/widgets.css (127.0.0.1) 2.00ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/css/card.css (127.0.0.1) 2.00ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/css/dataframe.css (127.0.0.1) 3.00ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/css/loading.css (127.0.0.1) 3.00ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/css/json.css (127.0.0.1) 4.00ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/css/markdown.css (127.0.0.1) 3.00ms
+25-Jan-22 14:34:56 - 200 GET /static/js/bokeh.min.js?v=b3e0592a1e90448fa40dcddd5cd5217dcd6b3c7dd368020f6a8e4be4fdd1adbdeb2824eb75ab4f5120c80dc7684f8ff2aa2f8b00d6f393108c96d2f6f2cf0297 (127.0.0.1) 10.00ms
+25-Jan-22 14:34:56 - 200 GET /static/js/bokeh-gl.min.js?v=863c26b3d7cbcf2a0dbf119589404b3ca66734754cd0af1d6e6ca17679ae711126917f171667194a6f04765eba06d9eb2d7d1f2ba7ef8fee420b9244557386f8 (127.0.0.1) 11.00ms
+25-Jan-22 14:34:56 - 200 GET /static/js/bokeh-widgets.min.js?v=0ede1975746c96e47b24a08c83a45a9282b6524986185f620debadba5132e16c43f941626151d70d779dde7ff63ef84830eb4b277291752aea5176a795b00cec (127.0.0.1) 12.00ms
+25-Jan-22 14:34:56 - 200 GET /static/js/bokeh-tables.min.js?v=e075943aa7fac687b27889393d32dde4c6dd9fc8ca7eeb3864ce96011372ea45d3807d8a2d15b322b051170360eda59a5cd9384219c4b150b271b864df4b07d3 (127.0.0.1) 13.00ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/panel.min.js?v=71c15b31e84b03c9d56bcfbb475ed33ecbb8ad52022526853c81845b7008dda8 (127.0.0.1) 15.00ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/bundled/css/bootstrap/4.4.1/css/bootstrap.min.css (127.0.0.1) 16.01ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/bundled/bootstraptemplate/bootstrap.css (127.0.0.1) 3.00ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/bundled/defaulttheme/default.css (127.0.0.1) 2.99ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/bundled/js/jquery-3.5.1.slim.min.js (127.0.0.1) 4.00ms
+25-Jan-22 14:34:56 - 200 GET /static/extensions/panel/bundled/js/bootstrap/4.4.1/js/bootstrap.min.js (127.0.0.1) 4.00ms
+25-Jan-22 14:34:57 - 200 GET /static/extensions/panel/icons/favicon.ico (127.0.0.1) 2.00ms
+25-Jan-22 14:34:57 - 101 GET /ws (127.0.0.1) 2.00ms
