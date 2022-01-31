@@ -7,6 +7,7 @@ import requests
 from datetime import date, timedelta, datetime
 from full_fred.fred import Fred
 import quandl
+import itertools
 
 from pathlib import Path
 
@@ -14,6 +15,7 @@ import holoviews as hv
 import bokeh
 from bokeh.models.callbacks import CustomJS
 from bokeh.events import Tap, MouseEnter, PointEvent
+from bokeh.palettes import Dark2_5 as palette
 
 from bokeh.plotting import figure, show, curdoc, Figure
 from bokeh.models import ColumnDataSource, NumeralTickFormatter, HoverTool, Span, Div, Toggle, BoxAnnotation, Slider, \
@@ -26,6 +28,9 @@ import random
 
 import param
 import panel as pn
+
+from src.sources import FREDSource, QuandlSource, FileSource
+from src.transformers import FractionalDifferentiation, Differentiation, PercentageChange
 
 
 # Config Logging
@@ -44,15 +49,6 @@ pn.param.ParamMethod.loading_indicator = True
 
 bootstrap = pn.template.BootstrapTemplate(title='FIDI Capital')
 
-# Show Crisis about BEA, QE Periods, QT Periods, Fed Chairman, Show Shock Events (Ex. Mexican Crisis, LTCM, Asian Crisis)
-checkbox_crisis = pn.widgets.Checkbox(name='Show Crisis')
-checkbox_qe = pn.widgets.Checkbox(name='Show QE Periods')
-checkbox_qt = pn.widgets.Checkbox(name='Show QT Periods')
-checkbox_shock_events = pn.widgets.Checkbox(name='Show Shock Events')
-checkbox_enable_highlight = pn.widgets.Checkbox(name='Show Highlight TS')
-checkbox_enable_syncronize_chart = pn.widgets.Checkbox(name='Syncronize Chart')
-checkbox_enable_vertical_tooltip = pn.widgets.Checkbox(name='Enable Vertical Tooltip', value=True)
-checkbox_enable_horizontal_tooltip = pn.widgets.Checkbox(name='Enable Horizontal Tooltip', value=True)
 
 gauge = pn.indicators.Gauge(
     name='Fear and Greed', value=20, bounds=(0, 100), format='{value}',
@@ -414,14 +410,169 @@ fig_list = []
 horizontal_hover_tool_list = []
 vertical_hover_tool_list = []
 
-tools = ['pan', 'reset', 'save', 'xwheel_zoom', 'box_select', 'lasso_select']
+tools = ['pan', 'reset', 'save', 'xwheel_zoom', 'ywheel_zoom', 'box_select', 'lasso_select']
 crosshair = CrosshairTool(dimensions="both")
 
 
+class ManagerTransformer:
+    def __init__(self, **kwargs):
+        self.transformers = {}
 
-class ManagerData:
+    def register(self, transformer):
+        assert transformer.name not in self.transformers, "Ya existe un transformer registrado con ese nombre"
+
+        self.transformers[transformer.name] = transformer
+
+class ManagerSources:
+    def __init__(self, **kwargs):
+        self.sources = {}
+
+    def register(self, source):
+        assert source.name not in self.sources, "Ya existe un transformer registrado con ese nombre"
+
+        self.sources[source.name] = source
+
+class Analysis:
     def __init__(self):
         pass
+
+
+
+class ManagerAnalysis:
+    def __init__(self, path, **kwargs):
+        self.path = path
+        self.analysis_dict = {}
+
+    def register(self, analysis):
+        assert analysis.name not in self.analysis_dict.keys(), "Ya existe un transformer registrado con ese nombre"
+
+        self.analysis_dict[analysis.name] = analysis
+
+class ManagerData:
+    def __init__(self, path, **kwargs):
+        self.path = path
+        self.transformers = ManagerTransformer()
+        self.sources = ManagerSources()
+        self.analysis = ManagerAnalysis(path=path)
+
+    def load(self):
+        self._load_analysis()
+
+    def _load_analysis(self):
+        analysis = {}
+
+        for file in os.listdir(self.path):
+            if file.endswith(".pkl"):
+                df_analysis = pd.read_pickle(os.path.join(self.path, file))
+
+                name_analysis = file.split('.')[0]
+
+                current_analysis = {}
+                current_analysis['series'] = []
+
+                list_df_analisis = []
+
+                for i, s in df_analysis.iterrows():
+                    serie_id = s['serie_id']
+                    source = s['source']
+                    units = s['units']
+                    units_show = s['units_show']
+                    freq = s['freq']
+                    serie_name = s['serie_name']
+                    column = s['column']
+
+                    # Add Info Series in List
+                    current_analysis['series'].append(
+                        {"serie_id": serie_id, "source": source, 'units': units, 'units_show': units_show, 'freq': freq,
+                         'serie_name': serie_name, 'column': column})
+
+                    # Temporal Dataframe
+                    df = None
+
+                    # Es una funcion custom
+                    if source == 'file':
+                        df = file_source.get_data_serie(serie_id, rename_column=serie_id)
+                    elif source == 'fred':
+                        df = fred_source.get_data_serie(serie_id, rename_column=serie_id)
+
+                        serie_data = fred.search_for_series([serie_id], limit=20)
+
+                        if re.search('Daily*', serie_data['seriess'][0]['frequency']):
+                            # min_date = df.index.min()
+                            # max_date = df.index.max()
+                            # print(pd.date_range(start=min_date, end=max_date, freq=pd.offsets.MonthBegin(1)))
+                            df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
+                        elif re.search('Week*', serie_data['seriess'][0]['frequency']):
+                            df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
+
+                        df.loc[:, "{}_{}".format(serie_id, 'base')] = 1
+                    elif source == 'quandl':
+                        df = quandl_source.get_data_serie(serie_id, rename_column=serie_id)
+
+                        if re.search('Daily*', freq):
+                            # min_date = df.index.min()
+                            # max_date = df.index.max()
+                            # print(pd.date_range(start=min_date, end=max_date, freq=pd.offsets.MonthBegin(1)))
+                            df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
+                        elif re.search('Week*', freq):
+                            df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
+
+                    if re.search("_pct12$", column):
+                        df.loc[:, "{}_pct12".format(serie_id)] = serie_pct_change(df, serie_id, periods=12)
+                        # df.drop(serie_id, axis=1, inplace=True)
+                    elif re.search("_pct1", column):
+                        df.loc[:, "{}_pct1".format(serie_id)] = serie_pct_change(df, serie_id, periods=1)
+                        # df.drop(serie_id, axis=1, inplace=True)
+
+                    # df.fillna(method='ffill', inplace=True)
+                    list_df_analisis.append(df)
+
+                df_aux = pd.concat(list_df_analisis, axis=1)
+                # df_aux.fillna(method='ffill', inplace=True)
+
+                columns = [c for c in df.columns if not re.search("_base$", c)]
+
+                df_aux.loc[:, columns] = df_aux[columns].fillna(method='ffill')
+                # df_aux[columns].fillna(method='ffill', inplace=True)
+
+                df_aux = df_aux.reset_index()
+
+                current_analysis['df'] = df_aux
+
+                current_analysis['start_date'] = df_aux.date.min()
+                current_analysis['end_date'] = df_aux.date.max()
+
+                current_analysis['x_data_range'] = DataRange1d(start=df_aux.date.min(), end=df_aux.date.max())
+
+                analysis[name_analysis] = current_analysis
+
+        self.analysis.analysis_dict = analysis
+
+
+# Define Manager
+manager = ManagerData(path=ANALYSIS_PATH)
+
+# **************** Register Transformers ***************************
+differentiation_transform = Differentiation()
+fractional_diff_transform = FractionalDifferentiation()
+percentage_change_transform = PercentageChange()
+percentage_change_from_year_transform = PercentageChange(name="Percentage Change from Year Ago", periods=12)
+
+manager.transformers.register(fractional_diff_transform)
+manager.transformers.register(differentiation_transform)
+manager.transformers.register(percentage_change_transform)
+manager.transformers.register(percentage_change_from_year_transform)
+
+# ******************* Register Sources ******************************
+fred_source = FREDSource(fred_credentials=fred_credentials)
+quandl_source = QuandlSource(api_key="4dvrfm6eBSwRSxwBP1Jx")
+file_source = FileSource(dir=os.path.join(BASE_DIR, "src", "dataset", "yields"))
+
+manager.sources.register(fred_source)
+manager.sources.register(quandl_source)
+manager.sources.register(file_source)
+
+manager.load()
 
 # ************************************** Load Analysis *********************************************
 logging.info("[+] Cargando datos...")
@@ -455,33 +606,44 @@ for file in os.listdir(ANALYSIS_PATH):
             serie_id = s['serie_id']
             source = s['source']
             units = s['units']
+            units_show = s['units_show']
             freq = s['freq']
             serie_name = s['serie_name']
             column = s['column']
 
             # Add Info Series in List
-            analisis_dict[name_analysis]['series'].append({"serie_id": serie_id, "source": source, 'units': units, 'units_show': units, 'freq': freq, 'serie_name': serie_name, 'column': column})
+            analisis_dict[name_analysis]['series'].append({"serie_id": serie_id, "source": source, 'units': units, 'units_show': units_show, 'freq': freq, 'serie_name': serie_name, 'column': column})
 
             # Temporal Dataframe
             df = None
 
             # Es una funcion custom
-            if callable(source):
-                df = source()
+            if source == 'file':
+                df = file_source.get_data_serie(serie_id, rename_column=serie_id)
             elif source == 'fred':
-                df = get_fred_dataset(serie_id, rename_column=serie_id)
+                df = fred_source.get_data_serie(serie_id, rename_column=serie_id)
 
                 serie_data = fred.search_for_series([serie_id], limit=20)
 
                 if re.search('Daily*', serie_data['seriess'][0]['frequency']):
-                    min_date = df.index.min()
-                    max_date = df.index.max()
+                    # min_date = df.index.min()
+                    # max_date = df.index.max()
                     # print(pd.date_range(start=min_date, end=max_date, freq=pd.offsets.MonthBegin(1)))
+                    df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
+                elif re.search('Week*', serie_data['seriess'][0]['frequency']):
                     df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
 
                 df.loc[:, "{}_{}".format(serie_id, 'base')] = 1
             elif source == 'quandl':
-                df = get_quandl_dataset(serie_id)
+                df = quandl_source.get_data_serie(serie_id, rename_column=serie_id)
+
+                if re.search('Daily*', freq):
+                    # min_date = df.index.min()
+                    # max_date = df.index.max()
+                    # print(pd.date_range(start=min_date, end=max_date, freq=pd.offsets.MonthBegin(1)))
+                    df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
+                elif re.search('Week*', freq):
+                    df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
 
             if re.search("_pct12$", column):
                 df.loc[:, "{}_pct12".format(serie_id)] = serie_pct_change(df, serie_id, periods=12)
@@ -574,7 +736,11 @@ for k, ts in analisis_dict.items():
 
 
 # Use js_link to connect button active property to glyph visible property
-toggle1 = Toggle(label="Show Depression / Recession", button_type="success", active=True)
+toggle_depression_recession = Toggle(label="Show Depression / Recession", button_type="success", active=False)
+toggle_chairman = Toggle(label="Show Chairman", button_type="success", active=False)
+toggle_qe = Toggle(label="Show QE", button_type="success", active=False)
+toggle_qt = Toggle(label="Show QT", button_type="success", active=False)
+toggle_taper = Toggle(label="Show Taper", button_type="success", active=False)
 
 
 # for d in fig_list:
@@ -699,7 +865,7 @@ def add_auto_adjustment_y(fig, source, column):
 def add_sync_crosshair(fig):
     fig.add_tools(crosshair)
 
-
+# Show Crisis about BEA, QE Periods, QT Periods, Fed Chairman, Show Shock Events (Ex. Mexican Crisis, LTCM, Asian Crisis)
 def add_recession_info(fig):
     df_business_cycle = pd.read_csv(os.path.join(BASE_DIR, "src", "dataset", "business_cycle.csv"))
     df_business_cycle['start'] = pd.to_datetime(df_business_cycle['start'], format="%d/%m/%Y")
@@ -709,22 +875,18 @@ def add_recession_info(fig):
 
     for i, row in df_business_cycle.iterrows():
         r = BoxAnnotation(left=row['start'], right=row['end'], fill_color='#009E73', fill_alpha=0.1)
+        r.visible = False
         recession_list.append(r)
 
     for r in recession_list:
         fig.add_layout(r)
-        toggle1.js_link('active', r, 'visible')
-
-
+        toggle_depression_recession.js_link('active', r, 'visible')
 
 def add_chairman_fed(fig):
     df_chairman = pd.read_csv(os.path.join(BASE_DIR, "src", "dataset", "chairmanfed.csv"))
     df_chairman['start'] = pd.to_datetime(df_chairman['start'], format="%d/%m/%Y")
     df_chairman['end'] = pd.to_datetime(df_chairman['end'], format="%d/%m/%Y")
 
-    print(df_chairman.head())
-    print(df_chairman.dtypes)
-
     list_chairman_fed = []
 
     for i, row in df_chairman.iterrows():
@@ -734,59 +896,92 @@ def add_chairman_fed(fig):
         if pd.isnull(row['end']):
             end = date.today()
 
-        r = BoxAnnotation(left=start, right=end, fill_color='#009E73', fill_alpha=0.1)
+        r = BoxAnnotation(left=start, right=end, fill_color=palette[i], fill_alpha=0.1)
+        r.visible = False
         list_chairman_fed.append(r)
 
     for c in list_chairman_fed:
         fig.add_layout(c)
-        #toggle1.js_link('active', r, 'visible')
+        toggle_chairman.js_link('active', c, 'visible')
 
 
 def add_qe(fig):
-    """
-    QE1,25/11/2008,25/6/2010
-    QE2,11/2010,6/2011
-    QE3 - Operation Twist,9/2012,12/2012
-    QE4,1/2013,10/2014
-    QE5,15/3/2020,
-    QT,
-    """
+    df_qe = pd.DataFrame(data={"name": ['QE1', 'QE2', 'QE3 - Operation Twist', "QE4", 'QE5', 'QECovid'],
+                                "start": ['25/11/2008', '3/11/2010', '21/9/2012', '2/1/2013', '11/10/2019', '15/3/2020'],
+                                "end": ['31/3/2010', '29/6/2012', '31/12/2012', '29/10/2014', '15/3/2020', None]
+                               })
 
-    df_chairman = pd.read_csv(os.path.join(BASE_DIR, "src", "dataset", "chairmanfed.csv"))
-    df_chairman['start'] = pd.to_datetime(df_chairman['start'], format="%d/%m/%Y")
-    df_chairman['end'] = pd.to_datetime(df_chairman['end'], format="%d/%m/%Y")
+    df_qe['start'] = pd.to_datetime(df_qe['start'], format="%d/%m/%Y")
+    df_qe['end'] = pd.to_datetime(df_qe['end'], format="%d/%m/%Y")
 
-    print(df_chairman.head())
-    print(df_chairman.dtypes)
+    list_qe = []
 
-    list_chairman_fed = []
-
-    for i, row in df_chairman.iterrows():
+    for i, row in df_qe.iterrows():
         start = row['start']
         end = row['end']
 
         if pd.isnull(row['end']):
             end = date.today()
 
-        r = BoxAnnotation(left=start, right=end, fill_color='#009E73', fill_alpha=0.1)
-        list_chairman_fed.append(r)
+        r = BoxAnnotation(left=start, right=end, fill_color='#C44125', fill_alpha=0.1)
+        r.visible = False
+        list_qe.append(r)
 
-    for c in list_chairman_fed:
+    for c in list_qe:
         fig.add_layout(c)
-        #toggle1.js_link('active', r, 'visible')
+        toggle_qe.js_link('active', c, 'visible')
 
-    """
-    arrow_style = dict(facecolor='black', edgecolor='white', shrink=0.05)
-    ax.annotate('QE1', xy=('2008-11-25', 0), xytext=('2008-11-25', -4), size=12, ha='right', arrowprops=arrow_style)
-    ax.annotate('QE1+', xy=('2009-03-18', 0), xytext=('2009-03-18', -6), size=12, ha='center', arrowprops=arrow_style)
-    ax.annotate('QE2', xy=('2010-11-03', 0), xytext=('2010-11-03', -4), size=12, ha='center', arrowprops=arrow_style)
-    ax.annotate('QE2+', xy=('2011-09-21', 0), xytext=('2011-09-21', -4.5), size=12, ha='center', arrowprops=arrow_style)
-    ax.annotate('QE2+', xy=('2012-06-20', 0), xytext=('2012-06-20', -6.5), size=12, ha='right', arrowprops=arrow_style)
-    ax.annotate('QE3', xy=('2012-09-13', 0), xytext=('2012-09-13', -8), size=12, ha='center', arrowprops=arrow_style)
-    ax.annotate('Tapering', xy=('2013-12-18', 0), xytext=('2013-12-18', -8), size=12, ha='center', arrowprops=arrow_style)
-    """
+def add_qt(fig):
+    df_qt = pd.DataFrame(data={"name": ['QT', ],
+                                "start": ['14/6/2017', ],
+                                "end": ['11/10/2019', ]
+                               })
 
+    df_qt['start'] = pd.to_datetime(df_qt['start'], format="%d/%m/%Y")
+    df_qt['end'] = pd.to_datetime(df_qt['end'], format="%d/%m/%Y")
 
+    list_qt = []
+
+    for i, row in df_qt.iterrows():
+        start = row['start']
+        end = row['end']
+
+        if pd.isnull(row['end']):
+            end = date.today()
+
+        r = BoxAnnotation(left=start, right=end, fill_color='#FFC300', fill_alpha=0.1)
+        r.visible = False
+        list_qt.append(r)
+
+    for c in list_qt:
+        fig.add_layout(c)
+        toggle_qt.js_link('active', c, 'visible')
+
+def add_taper(fig):
+    df_taper = pd.DataFrame(data={"name": ['Taper1', 'TaperCovid'],
+                                "start": ['18/12/2013', '3/11/2021'],
+                                "end": ['29/10/2014', None]
+                               })
+
+    df_taper['start'] = pd.to_datetime(df_taper['start'], format="%d/%m/%Y")
+    df_taper['end'] = pd.to_datetime(df_taper['end'], format="%d/%m/%Y")
+
+    list_taper = []
+
+    for i, row in df_taper.iterrows():
+        start = row['start']
+        end = row['end']
+
+        if pd.isnull(row['end']):
+            end = date.today()
+
+        r = BoxAnnotation(left=start, right=end, fill_color='#581845', fill_alpha=0.1)
+        r.visible = False
+        list_taper.append(r)
+
+    for c in list_taper:
+        fig.add_layout(c)
+        toggle_taper.js_link('active', c, 'visible')
 
 def layout_row(list_figs, figs_per_row):
     list_result = []
@@ -804,7 +999,6 @@ def layout_row(list_figs, figs_per_row):
         list_result.append(current_list)
 
     return list_result
-
 
 
 class ChartForm(param.Parameterized):
@@ -829,8 +1023,8 @@ class ChartForm(param.Parameterized):
         elif re.search("_pct1", self.column):
             select_value = 'Percentage Change'
 
-        self.select_processing_2 = pn.widgets.Select(name='Processing', value=select_value, options=['Normal', 'Percentage Change', 'Percentage Change from Year Ago'])
-        self.select_processing_2.param.watch(self.set_column, 'value')
+        self.select_processing_2 = pn.widgets.Select(name='Transform', value=select_value, options=['Normal', 'Percentage Change', 'Percentage Change from Year Ago'])
+        self.select_processing_2.param.watch(self.set_column, 'value', onlychanged=True, precedence=0)
 
         fg, h_hovertool, v_hovertool = create_ts(source=self.parent.data_source, x_data_range=self.parent.x_data_range,
                                                  column=self.column, serie_name=self.serie_name, freq=self.freq,
@@ -838,35 +1032,13 @@ class ChartForm(param.Parameterized):
         add_recession_info(fg)
         add_current_time_span(fg)
         # add_auto_adjustment_y(fg, self.parent.data_source, self.column)
+        add_chairman_fed(fg)
+        add_qe(fg)
+        add_qt(fg)
+        add_taper(fg)
+
         fg.add_tools(self.parent.crosshair)
 
-        """
-        source = ColumnDataSource({'date': self.parent.df.date, self.column: self.parent.df[self.column]})
-        fg.x_range.js_on_change('start', CustomJS(args=dict(y_range=fg.y_range, source=source), code='''
-            console.log(source.data["%s"]);
-            clearTimeout(window._autoscale_timeout);
-
-            var index = source.data.date,
-                x = source.data["%s"],
-                start = cb_obj.start,
-                end = cb_obj.end,
-                min = 1e10,
-                max = -1;
-            
-            for (var i=0; i < index.length; ++i) {
-                if (start <= index[i] && index[i] <= end) {
-                    max = Math.max(x[i], max);
-                    min = Math.min(x[i], min);
-                }
-            }
-            var pad = (max - min) * .05;
-
-            window._autoscale_timeout = setTimeout(function() {
-                y_range.start = min - pad;
-                y_range.end = max + pad;
-            }, 50);
-        ''' %   (self.column)))
-        """
         self.fig = fg
         self.h_hovertool = h_hovertool
         self.v_hovertool = v_hovertool
@@ -879,22 +1051,21 @@ class ChartForm(param.Parameterized):
 
         if processing == 'Percentage Change':
             column = "{}_{}".format(serie_id, "pct1")
-            if not column in columns:
-                self.column = column
-                self.units_show = "Percentage Change"
+            self.column = column
+            self.units_show = "Percentage Change"
         elif processing == 'Percentage Change from Year Ago':
             column = "{}_{}".format(serie_id, "pct12")
-            if not column in columns:
-                self.column = column
-                self.units_show = "Percentage Change from Year Ago"
+            self.column = column
+            self.units_show = "Percentage Change from Year Ago"
         elif processing == 'Differentiation':
             column = "{}_{}".format(serie_id, "diff")
-            if not column in columns:
-                self.column = column
-                self.units_show = "Return"
+            self.column = column
+            self.units_show = "Return"
         elif processing == 'Normal':
             self.column = serie_id
             self.units_show = self.units
+
+        print("ChartForm Set Column: ", self.column)
 
         self.update_plot(self.column)
 
@@ -904,6 +1075,8 @@ class ChartForm(param.Parameterized):
 
         line.glyph.y = column
         cr.glyph.y = column
+
+        self.fig.yaxis[0].axis_label = self.units_show
 
         # Set Name of legent
         self.fig.legend[0].name = column
@@ -976,7 +1149,7 @@ class AnalysisForm(param.Parameterized):
 
     def add_chart(self, s):
         chart_form = ChartForm(parent=self, **s)
-        chart_form.select_processing_2.param.watch(self.update_view, 'value')
+        chart_form.select_processing_2.param.watch(self.update_view, 'value', precedence=1)
 
         self.chart_forms = [*self.chart_forms, chart_form]
 
@@ -1031,7 +1204,7 @@ class AnalysisForm(param.Parameterized):
             self.df = df
             self.data_source.data = self.df
 
-        print(self.df.columns)
+        #print(self.df.columns)
 
         #return self.data_source
 
@@ -1061,6 +1234,7 @@ class SeriesForm(param.Parameterized):
     plot_by_row = param.Integer(3, bounds=(1, 4))
 
     autocomplete_search_serie = pn.widgets.TextInput(name='Search Serie', placeholder='Ticker or Serie Name')
+    search_source = pn.widgets.Select(name='Source', value='fred', options=['fred', 'quandl', 'file'])
 
     button_open_modal = pn.widgets.Button(name='Add Serie', width_policy='fit', height_policy='fit', button_type='primary')
     button_add_serie = pn.widgets.Button(name='Add Serie', width_policy='fit', height_policy='fit', button_type='primary')
@@ -1089,6 +1263,18 @@ class SeriesForm(param.Parameterized):
         self.alerts = []
         self.search_result = []
 
+        self.fred_source = FREDSource(fred_credentials=fred_credentials)
+        self.quandl_source = QuandlSource(api_key="4dvrfm6eBSwRSxwBP1Jx")
+        self.file_source = FileSource(dir=os.path.join(BASE_DIR, "src", "dataset", "yields"))
+
+    def _get_selected_data_source(self):
+        if self.search_source.value == 'fred':
+            return self.fred_source
+        elif self.search_source.value == 'quandl':
+            return self.quandl_source
+        elif self.search_source.value == 'file':
+            return self.file_source
+
     def add_analysis(self, **kwargs):
         new_analysis = AnalysisForm(parent=self, **kwargs)
         self.analysis_list = [*self.analysis_list, new_analysis]
@@ -1097,15 +1283,7 @@ class SeriesForm(param.Parameterized):
     def do_search(self, event):
         logging.info("[+] Obteniendo resultados de busqueda ...")
         if event.new != "":
-            series = fred.search_for_series([str(event.new)], limit=20)
-            self.search_result = []
-
-            for s in series['seriess']:
-                t = {"name": s['title'], "id": s['id'], 'observation_start': s['observation_start'],
-                                       'observation_end': s['observation_end'], 'frequency': s['frequency'], 'units': s['units'],
-                                       'seasonal_adjustment': s['seasonal_adjustment'], 'notes': ''}
-                self.search_result.append(t)
-
+            self._get_selected_data_source().do_search(event.new)
             self.param.trigger('action_update_search_results')
 
     def open_modal(self, event):
@@ -1143,19 +1321,30 @@ class SeriesForm(param.Parameterized):
         # Serie Information
         serie_data = None
 
-        for s in self.search_result:
+        for s in self._get_selected_data_source().get_search_results():
             if s['id'] == serie_id:
-                serie_data = {"serie_id": s['id'], "source": "fred", 'units': s['units'], 'freq': s['frequency'], 'serie_name': s['name'], 'column': s['id']}
+                serie_data = {"serie_id": s['id'], "source": self.search_source.value, 'units': s['units'], 'freq': s['frequency'], 'serie_name': s['name'], 'column': s['id']}
                 break
 
         current_analysis = self._get_current_analysis()
 
-        df_serie = get_fred_dataset(serie_id, rename_column=serie_id)
+        df_serie = None
+
+        #df_serie = self._get_selected_data_source().get_data_serie(serie_id, rename_column=serie_id)
+
+        if self.search_source.value == 'fred':
+            df_serie = self.fred_source.get_data_serie(serie_id, rename_column=serie_id)
+        elif self.search_source.value == 'quandl':
+            df_serie = self.quandl_source.get_data_serie(serie_id, rename_column=serie_id)
+        elif self.search_source.value == 'file':
+            df_serie = self.file_source.get_data_serie(serie_id, rename_column=serie_id)
 
         if re.search('Daily*', serie_data['freq']):
-            min_date = df_serie.index.min()
-            max_date = df_serie.index.max()
+            #min_date = df_serie.index.min()
+            #max_date = df_serie.index.max()
             # print(pd.date_range(start=min_date, end=max_date, freq=pd.offsets.MonthBegin(1)))
+            df_serie = df_serie.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
+        elif re.search('Week*', serie_data['freq']):
             df_serie = df_serie.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
 
         df_serie.loc[:, "{}_{}".format(serie_id, 'base')] = 1
@@ -1236,17 +1425,15 @@ class SeriesForm(param.Parameterized):
         {}
         """
 
-        logo = 'https://fred.stlouisfed.org/images/masthead-88h-2x.png'
-        header_color = 'black'
-        header_background = '#2f2f2f'
+        selected_source = self._get_selected_data_source()
 
-        for r in self.search_result:
+        for r in selected_source.get_search_results():
             button_select = pn.widgets.Button(name=r['id'])
             button_select.param.watch(self.add_serie_buttom, 'value')
 
             rows.append(pn.Card(
                     pn.Column(description.format(r['name'], r['observation_start'], r['observation_end'], r['frequency'], r['notes']), button_select),
-                    header=pn.panel(logo, height=40), header_color=header_color, header_background=header_background)
+                    header=pn.panel(selected_source.logo, height=40), header_color=selected_source.header_color, header_background=selected_source.header_background)
             )
 
         return pn.Column("**Search Results:**", pn.GridBox(*rows, ncols=4)) if len(rows) > 0 else None
@@ -1293,7 +1480,12 @@ bootstrap.sidebar.append(series_form.button_open_modal)
 # bootstrap.sidebar.append(series_form.button_create_analisis)
 
 
-bootstrap.sidebar.append(toggle1)
+bootstrap.sidebar.append(toggle_depression_recession)
+bootstrap.sidebar.append(toggle_qe)
+bootstrap.sidebar.append(toggle_qt)
+bootstrap.sidebar.append(toggle_taper)
+bootstrap.sidebar.append(toggle_chairman)
+
 bootstrap.sidebar.append(series_form.param)
 """
 bootstrap.sidebar.append(checkbox_crisis)
@@ -1342,7 +1534,7 @@ analitics = pn.Row(*trend_list)
 bootstrap.main.append(analitics)
 """
 
-bootstrap.modal.append(pn.Column(pn.Row(series_form.autocomplete_search_serie), series_form.get_search_results))
+bootstrap.modal.append(pn.Column(pn.Row(series_form.autocomplete_search_serie, series_form.search_source), series_form.get_search_results))
 
 bootstrap.main.append(alerts)
 bootstrap.main.append(container)

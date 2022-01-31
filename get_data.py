@@ -64,6 +64,7 @@ def get_fred_dataset(serie_id, columns=None, rename_column=None):
 df = get_quandl_dataset('USTREASURY/YIELD')
 print(df.head())
 
+"""
 fred = Fred('api_fred.txt')
 
 list_ts = [
@@ -160,3 +161,4 @@ df_result = pd.concat(df_list, axis=1)
 print(df_result.head())
 print(df_result.columns)
 
+"""
