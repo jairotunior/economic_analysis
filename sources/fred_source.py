@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import re
 from src.sources import Source
 from full_fred.fred import Fred
 
@@ -58,7 +59,22 @@ class FREDSource(Source):
         if rename_column:
             data = data.rename(columns={'value': rename_column})
 
+        #return data
+
+        serie_data = self.fred.search_for_series([serie_id], limit=20)
+
+        if re.search('Daily*', serie_data['seriess'][0]['frequency']):
+            # min_date = df.index.min()
+            # max_date = df.index.max()
+            # print(pd.date_range(start=min_date, end=max_date, freq=pd.offsets.MonthBegin(1)))
+            data = data.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
+        elif re.search('Week*', serie_data['seriess'][0]['frequency']):
+            data = data.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
+
+        data.loc[:, "{}_{}".format(serie_id, 'base')] = 1
+
         return data
+
 
     def get_search_results(self):
         return self.search_result

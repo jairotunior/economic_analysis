@@ -1,4 +1,5 @@
 from src.transformers.transformers import Transformation
-from src.transformers.fractional_differentiation import FractionalDifferentiation
+from src.transformers.frac_diff_exp_wind import FractionalDifferentiationEW
 from src.transformers.differentiation import Differentiation
 from src.transformers.percentage_change import PercentageChange
+from src.transformers.frac_diff_ffd import FractionalDifferentiationFFD

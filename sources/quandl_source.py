@@ -80,6 +80,18 @@ class QuandlSource(Source):
         if rename_column:
             df = df.rename(columns={serie_selected['quandl_column']: rename_column})
 
+        #return df
+
+        if re.search('Daily*', serie_selected['frequency']):
+            # min_date = df.index.min()
+            # max_date = df.index.max()
+            # print(pd.date_range(start=min_date, end=max_date, freq=pd.offsets.MonthBegin(1)))
+            df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
+        elif re.search('Week*', serie_selected['frequency']):
+            df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
+
+        df.loc[:, "{}_{}".format(serie_id, 'base')] = 1
+
         return df
 
     def get_search_results(self):

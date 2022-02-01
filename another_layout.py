@@ -30,7 +30,7 @@ import param
 import panel as pn
 
 from src.sources import FREDSource, QuandlSource, FileSource
-from src.transformers import FractionalDifferentiation, Differentiation, PercentageChange
+from src.transformers import FractionalDifferentiationEW, FractionalDifferentiationFFD, Differentiation, PercentageChange
 
 
 # Config Logging
@@ -423,6 +423,12 @@ class ManagerTransformer:
 
         self.transformers[transformer.name] = transformer
 
+    def get_transformer_all(self):
+        return [self.transformers[k] for k in self.transformers.keys()]
+
+    def get_transformer_names(self):
+        return self.transformers.keys()
+
 class ManagerSources:
     def __init__(self, **kwargs):
         self.sources = {}
@@ -432,10 +438,121 @@ class ManagerSources:
 
         self.sources[source.name] = source
 
-class Analysis:
-    def __init__(self):
-        pass
+    def get_source_by_name(self, name):
+        return self.sources[name]
 
+    def get_sources_names(self):
+        return self.sources.keys()
+
+
+class Serie:
+    def __init__(self, **kwargs):
+        self.serie_id = kwargs.pop('serie_id', None)
+        self.serie_name = kwargs.pop('serie_name', None)
+        self.column = kwargs.pop('column', None)
+        self.freq = kwargs.pop('freq', None)
+        self.units = kwargs.pop('units', None)
+        self.source = kwargs.pop('source', None)
+        self.units_show = kwargs.pop('units_show', self.units)
+
+        self.analysis = kwargs.pop('analysis', None)
+        self.manager = self.analysis.manager
+
+    def update(self, transform_name, **kwargs):
+        is_updated = False
+
+        for t in self.manager.transformers.get_transformer_all():
+            if t.name == transform_name:
+                self.column = "{}{}".format(self.serie_id, t.suffix)
+                self.units_show = t.units_show
+                is_updated = True
+
+        if not is_updated:
+            self.column = self.serie_id
+            self.units_show = self.units
+
+    def get_data_representation(self):
+        return {
+            "parent": self.analysis.name,
+            "serie_id": self.serie_id,
+            "serie_name": self.serie_name,
+            "column": self.column,
+            "units": self.units,
+            "units_show": self.units_show,
+            "freq": self.freq,
+            "source": self.source,
+        }
+
+class Analysis:
+    def __init__(self, **kwargs):
+        self.name = kwargs.pop('analysis_name', "Default{}".format(str(random.randint(0, 1000))))
+        self.series = kwargs.pop('series', [])
+        self.df = kwargs.pop('df', None)
+        self.manager = kwargs.pop('manager', None)
+
+        self.start_date = self.end_date = self.x_data_range = self.data_source = None
+
+        if self.df is not None:
+            self.start_date = self.df.date.min()
+            self.end_date = self.df.date.max()
+            self.x_data_range = DataRange1d(start=self.start_date, end=self.end_date)
+            self.data_source = ColumnDataSource(self.df)
+
+    def save(self):
+        logging.info("[+] Guardando analisis: {}".format(self.analysis_name))
+
+        df = None
+
+        for i, s in enumerate(self.series):
+            data = s.get_data_representation()
+
+            if i == 0:
+                df = pd.DataFrame(data={k: [] for k in data.keys()})
+
+            df = df.append(data, ignore_index=True)
+
+        df.to_pickle(os.path.join(self.manager.path, "{}.pkl".format(self.analysis_name)))
+        logging.debug("[+] Se ha guardado exitosamente")
+
+    def add_serie(self, **kwargs):
+        new_serie = Serie(analysis=self, **kwargs)
+        self.series.append(new_serie)
+        return new_serie
+
+    def update_data_source(self):
+        # print("**** Analysis Update Data Source *****")
+        modification = False
+        df = self.df
+
+        for c in self.series:
+            column_name = c.column
+            # print("** Analysis Processing Variable: ", c.select_processing_2)
+            serie_id = c.serie_id
+            # print("** Analysis Serie: ", serie_id)
+
+            without_transformation = False
+
+            for ot in self.manager.transformers.get_transformer_all():
+                if "{}{}".format(serie_id, ot.suffix) == column_name:
+                    if not column_name in df.columns:
+                        mask = df['{}_base'.format(serie_id)] == 1
+
+                        df.loc[mask, column_name] = ot.transform(series=df.loc[mask][serie_id])
+
+                        columns = [c for c in df.columns if not re.search("_base$", c)]
+                        df.loc[:, columns] = df[columns].fillna(method='ffill')
+
+                        modification = True
+                    without_transformation = True
+
+            if without_transformation:
+                c.column = serie_id
+                c.units_show = c.units
+
+        if modification:
+            print("*** Analysis Updated DataSource ***")
+            self.df = df
+            self.data_source.data = self.df
 
 
 class ManagerAnalysis:
@@ -448,6 +565,12 @@ class ManagerAnalysis:
 
         self.analysis_dict[analysis.name] = analysis
 
+    def get_analysis_by_name(self, name):
+        return self.analysis_dict[name]
+
+    def get_analysis(self):
+        return self.analysis_dict
+
 class ManagerData:
     def __init__(self, path, **kwargs):
         self.path = path
@@ -459,19 +582,21 @@ class ManagerData:
         self._load_analysis()
 
     def _load_analysis(self):
+        logging.info("[+] Cargando datos...")
         analysis = {}
 
+        # Iterate Analysis Files
         for file in os.listdir(self.path):
             if file.endswith(".pkl"):
                 df_analysis = pd.read_pickle(os.path.join(self.path, file))
 
                 name_analysis = file.split('.')[0]
 
-                current_analysis = {}
-                current_analysis['series'] = []
-
+                # 1. Get data of series in Analysis
                 list_df_analisis = []
+                list_series = []
 
+                # Iterate each one time serie
                 for i, s in df_analysis.iterrows():
                     serie_id = s['serie_id']
                     source = s['source']
@@ -481,14 +606,19 @@ class ManagerData:
                     serie_name = s['serie_name']
                     column = s['column']
 
+                    serie_info = {"serie_id": serie_id, "source": source, 'units': units, 'units_show': units_show, 'freq': freq,
+                         'serie_name': serie_name, 'column': column}
+
                     # Add Info Series in List
-                    current_analysis['series'].append(
-                        {"serie_id": serie_id, "source": source, 'units': units, 'units_show': units_show, 'freq': freq,
-                         'serie_name': serie_name, 'column': column})
+                    list_series.append(serie_info)
 
                     # Temporal Dataframe
                     df = None
 
+                    current_source = self.sources.get_source_by_name(name=source)
+                    df = current_source.get_data_serie(serie_id, rename_column=serie_id)
+
+                    """
                     # Es una funcion custom
                     if source == 'file':
                         df = file_source.get_data_serie(serie_id, rename_column=serie_id)
@@ -523,6 +653,8 @@ class ManagerData:
                     elif re.search("_pct1", column):
                         df.loc[:, "{}_pct1".format(serie_id)] = serie_pct_change(df, serie_id, periods=1)
                         # df.drop(serie_id, axis=1, inplace=True)
+                    
+                    """
 
                     # df.fillna(method='ffill', inplace=True)
                     list_df_analisis.append(df)
@@ -537,28 +669,29 @@ class ManagerData:
 
                 df_aux = df_aux.reset_index()
 
-                current_analysis['df'] = df_aux
+                # 2. Create Analysis Object
+                new_analysis = Analysis(analysis_name=name_analysis, manager=self, df=df_aux)
 
-                current_analysis['start_date'] = df_aux.date.min()
-                current_analysis['end_date'] = df_aux.date.max()
+                # 3. Add Series to Analysis
+                for s in list_series:
+                    new_analysis.add_serie(**s)
 
-                current_analysis['x_data_range'] = DataRange1d(start=df_aux.date.min(), end=df_aux.date.max())
-
-                analysis[name_analysis] = current_analysis
-
-        self.analysis.analysis_dict = analysis
+                # 4. Register Analysis
+                self.analysis.register(new_analysis)
 
 
 # Define Manager
 manager = ManagerData(path=ANALYSIS_PATH)
 
 # **************** Register Transformers ***************************
-differentiation_transform = Differentiation()
-fractional_diff_transform = FractionalDifferentiation()
-percentage_change_transform = PercentageChange()
-percentage_change_from_year_transform = PercentageChange(name="Percentage Change from Year Ago", periods=12)
+differentiation_transform = Differentiation(units_show='Returns')
+fractional_diff_transform = FractionalDifferentiationEW(units_show='Fractional Return')
+fractional_diff_ffd_transform = FractionalDifferentiationFFD(units_show='FFD Return')
+percentage_change_transform = PercentageChange(units_show='Percentage Change')
+percentage_change_from_year_transform = PercentageChange(name="Percentage Change from Year Ago", units_show='Percentage Change from Year Ago', periods=12)
 
 manager.transformers.register(fractional_diff_transform)
+manager.transformers.register(fractional_diff_ffd_transform)
 manager.transformers.register(differentiation_transform)
 manager.transformers.register(percentage_change_transform)
 manager.transformers.register(percentage_change_from_year_transform)
@@ -575,26 +708,13 @@ manager.sources.register(file_source)
 manager.load()
 
 # ************************************** Load Analysis *********************************************
-logging.info("[+] Cargando datos...")
 
 
+"""
 for file in os.listdir(ANALYSIS_PATH):
     if file.endswith(".pkl"):
         df_analysis = pd.read_pickle(os.path.join(ANALYSIS_PATH, file))
-
-        """
-        df_analysis = pd.DataFrame({"name": ["Analisis 1", "Analisis 2", "Analisis 1"],
-                                    "serie_id": ['GDP', 'PCE', 'CPIAUCSL'],
-                                    'serie_name': ['Lorem', 'Ipsum', 'GGDDD LP'],
-                                    'source': ['fred', 'fred', 'fred'],
-                                    'units': ['Billions', 'Billions', 'Billions'],
-                                    'freq': ['M', 'M', 'M'],
-                                    'column_name': ['GDP', 'PCE', 'CPIAUCSL'],
-                                    'column_show': ['GDP', 'PCE', 'CPIAUCSL']})
-
-        analisis_list = df_analysis['name'].unique()
-        """
-
+        
         name_analysis = file.split('.')[0]
 
         analisis_dict[name_analysis] = {}
@@ -672,7 +792,7 @@ for file in os.listdir(ANALYSIS_PATH):
 
         analisis_dict[name_analysis]['x_data_range'] = DataRange1d(start=df_aux.date.min(), end=df_aux.date.max())
 
-
+"""
 
 # ****************************************** Create Figures *******************************
 """
@@ -1004,31 +1124,33 @@ def layout_row(list_figs, figs_per_row):
 class ChartForm(param.Parameterized):
 
     def __init__(self, **kwargs):
-        self.serie_id = kwargs.pop('serie_id', None)
-        self.serie_name = kwargs.pop('serie_name', None)
-        self.column = kwargs.pop('column', None)
-        #self.column_show = kwargs.pop('column_show', self.column)
+        assert kwargs.get('serie', None), "Debe suministrar un objeto serie"
+        assert kwargs.get('parent', None), "Debe suministrar un objeto AnalysisForm"
+
         self.parent = kwargs.pop('parent', None)
-        self.freq = kwargs.pop('freq', None)
-        self.units = kwargs.pop('units', None)
-        self.source = kwargs.pop('source', None)
-        self.units_show = kwargs.pop('units_show', self.units)
+        self.serie = kwargs.pop('serie', None)
+
+        self.analysis = self.serie.analysis
+        self.manager = self.analysis.manager
 
         super().__init__(**kwargs)
 
+        option_transforms = self.manager.transformers.get_transformer_names()
+
         select_value = 'Normal'
 
-        if re.search("_pct12$", self.column):
-            select_value = 'Percentage Change from Year Ago'
-        elif re.search("_pct1", self.column):
-            select_value = 'Percentage Change'
+        for ot in self.manager.transformers.get_transformer_all():
+            if re.search("{}$".format(ot.suffix), self.serie.column):
+                select_value = ot.name
+                break
 
-        self.select_processing_2 = pn.widgets.Select(name='Transform', value=select_value, options=['Normal', 'Percentage Change', 'Percentage Change from Year Ago'])
+        #self.select_processing_2 = pn.widgets.Select(name='Transform', value=select_value, options=['Normal', 'Percentage Change', 'Percentage Change from Year Ago'])
+        self.select_processing_2 = pn.widgets.Select(name='Transform', value=select_value, options=['Normal', *option_transforms])
         self.select_processing_2.param.watch(self.set_column, 'value', onlychanged=True, precedence=0)
 
-        fg, h_hovertool, v_hovertool = create_ts(source=self.parent.data_source, x_data_range=self.parent.x_data_range,
-                                                 column=self.column, serie_name=self.serie_name, freq=self.freq,
-                                                 units=self.units_show)
+        fg, h_hovertool, v_hovertool = create_ts(source=self.analysis.data_source, x_data_range=self.analysis.x_data_range,
+                                                 column=self.serie.column, serie_name=self.serie.serie_name, freq=self.serie.freq,
+                                                 units=self.serie.units_show)
         add_recession_info(fg)
         add_current_time_span(fg)
         # add_auto_adjustment_y(fg, self.parent.data_source, self.column)
@@ -1044,42 +1166,43 @@ class ChartForm(param.Parameterized):
         self.v_hovertool = v_hovertool
 
     def set_column(self, event):
-        processing = event.new
-        # print("** Chart Form: ", processing)
+        transformation_name = event.new
+        """
+        # print("** Chart Form: ", transformation)
         serie_id = self.serie_id
-        columns = self.parent.df.columns
 
-        if processing == 'Percentage Change':
-            column = "{}_{}".format(serie_id, "pct1")
-            self.column = column
-            self.units_show = "Percentage Change"
-        elif processing == 'Percentage Change from Year Ago':
-            column = "{}_{}".format(serie_id, "pct12")
-            self.column = column
-            self.units_show = "Percentage Change from Year Ago"
-        elif processing == 'Differentiation':
-            column = "{}_{}".format(serie_id, "diff")
-            self.column = column
-            self.units_show = "Return"
-        elif processing == 'Normal':
-            self.column = serie_id
-            self.units_show = self.units
+        is_update = False
 
-        print("ChartForm Set Column: ", self.column)
+        for ot in self.manager.transformers.get_transformer_all():
+            if transformation == ot.name:
+                column = "{}{}".format(serie_id, ot.suffix)
+                self.serie.column = column
+                self.serie.units_show = self.serie.units if ot.units_show is None else ot.units_show
+                is_update = True
+                break
 
-        self.update_plot(self.column)
+        if is_update:
+            self.serie.column = serie_id
+            self.serie.units_show = self.serie.units
 
-    def update_plot(self, column):
+        print("ChartForm Set Column: ", self.serie.column)
+        """
+
+        self.serie.update(transformation_name)
+
+        self.update_plot()
+
+    def update_plot(self):
         line = self.fig.select_one({'name': 'line'})
         cr = self.fig.select_one({'name': 'cr'})
 
-        line.glyph.y = column
-        cr.glyph.y = column
+        line.glyph.y = self.serie.column
+        cr.glyph.y = self.serie.column
 
-        self.fig.yaxis[0].axis_label = self.units_show
+        self.fig.yaxis[0].axis_label = self.serie.units_show
 
         # Set Name of legent
-        self.fig.legend[0].name = column
+        self.fig.legend[0].name = self.serie.column
 
     #@param.depends('select_processing')
     def view(self):
@@ -1089,19 +1212,7 @@ class ChartForm(param.Parameterized):
         return self.fig
 
     def panel(self):
-        return pn.Card(pn.Column(self.view, self.select_processing_2), title=self.serie_name)
-
-    def get_data_representation(self):
-        return {
-            "parent": self.parent.analysis_name,
-            "serie_id": self.serie_id,
-            "serie_name": self.serie_name,
-            "column": self.column,
-            "units": self.units,
-            "units_show": self.units_show,
-            "freq": self.freq,
-            "source": self.source,
-        }
+        return pn.Card(pn.Column(self.view, self.select_processing_2), title=self.serie.serie_name)
 
     def __repr__(self, *_):
         return "Value"
@@ -1115,49 +1226,53 @@ class AnalysisForm(param.Parameterized):
     chart_forms = param.List([], item_type=ChartForm)
 
     def __init__(self, parent, **kwargs):
-        self.analysis_name = kwargs.pop('analysis_name', "Default{}".format(str(random.randint(0, 1000))))
+        assert kwargs.get('analysis', None), "Debe suministrar un objeto analysis"
+
+        self.analysis = kwargs.pop('analysis', None)
+        self.manager = kwargs.pop('manager', [])
+
+        #self.analysis_name = kwargs.pop('analysis_name', "Default{}".format(str(random.randint(0, 1000))))
+
         self.ncols = kwargs.pop('ncols', 3)
-        self.series = kwargs.pop('series', [])
-        self.start_date = kwargs.pop('start_date', None)
-        self.end_date = kwargs.pop('end_date', None)
-        self.x_data_range = kwargs.pop('x_data_range', None)
-        self.df = kwargs.pop('df', pd.DataFrame({}))
 
         super().__init__(**kwargs)
 
         self.parent = parent
-        self.data_source = ColumnDataSource(self.df)
+
         self.crosshair = CrosshairTool(dimensions="both")
 
         self.param.watch(self.save_analysis, 'action_save_analysis')
 
+        self._load()
+
+    def _load(self):
+        list_chart_form = []
+        for s in self.analysis.series:
+            print(s.serie_id)
+            chart_form = ChartForm(parent=self, serie=s)
+            chart_form.select_processing_2.param.watch(self.update_view, 'value', precedence=1)
+            list_chart_form.append(chart_form)
+
+        self.chart_forms = list_chart_form
+
     def save_analysis(self, event):
-        logging.info("[+] Guardando analisis: {}".format(self.analysis_name))
-
-        df = None
-
-        for i, s in enumerate(self.chart_forms):
-            data = s.get_data_representation()
-
-            if i == 0:
-                df = pd.DataFrame(data={k: [] for k in data.keys()})
-
-            df = df.append(data, ignore_index=True)
-
-        df.to_pickle(os.path.join(ANALYSIS_PATH, "{}.pkl".format(self.analysis_name)))
-        logging.debug("[+] Se ha guardado exitosamente")
+        self.analysis.save()
 
     def add_chart(self, s):
-        chart_form = ChartForm(parent=self, **s)
+        new_serie = self.analysis.add_serie(**s)
+
+        chart_form = ChartForm(parent=self, serie=new_serie)
         chart_form.select_processing_2.param.watch(self.update_view, 'value', precedence=1)
 
         self.chart_forms = [*self.chart_forms, chart_form]
 
         return chart_form
 
-    #@param.output(ColumnDataSource)
     def get_data_source(self):
         # print("**** Analysis Update Data Source *****")
+        self.analysis.update_data_source()
+
+        """
         modification = False
         df = self.df
 
@@ -1207,6 +1322,7 @@ class AnalysisForm(param.Parameterized):
         #print(self.df.columns)
 
         #return self.data_source
+        """
 
     def update_data_source(self):
         self.data_source.data = self.df
@@ -1250,6 +1366,9 @@ class SeriesForm(param.Parameterized):
     analysis_list = param.List([], item_type=AnalysisForm)
 
     def __init__(self, **kwargs):
+        assert kwargs.get('manager', None), "Definir el manager para la vista"
+        manager = kwargs.pop('manager')
+
         super().__init__(**kwargs)
 
         self.button_add_serie.param.watch(self.add_serie_buttom, 'value')
@@ -1263,22 +1382,27 @@ class SeriesForm(param.Parameterized):
         self.alerts = []
         self.search_result = []
 
-        self.fred_source = FREDSource(fred_credentials=fred_credentials)
-        self.quandl_source = QuandlSource(api_key="4dvrfm6eBSwRSxwBP1Jx")
-        self.file_source = FileSource(dir=os.path.join(BASE_DIR, "src", "dataset", "yields"))
+        self.manager = manager
+
+        self._load()
+
+    def _load(self):
+        logging.info("[+] Loading Analysis")
+        list_form_analysis = []
+        for k in self.manager.analysis.get_analysis().keys():
+            analysis = self.manager.analysis.get_analysis_by_name(k)
+            form_analysis = AnalysisForm(parent=self, analysis=analysis)
+            list_form_analysis.append(form_analysis)
+        self.analysis_list = list_form_analysis
 
     def _get_selected_data_source(self):
-        if self.search_source.value == 'fred':
-            return self.fred_source
-        elif self.search_source.value == 'quandl':
-            return self.quandl_source
-        elif self.search_source.value == 'file':
-            return self.file_source
+        return self.manager.sources.get_source_by_name(self.search_source.value)
 
     def add_analysis(self, **kwargs):
-        new_analysis = AnalysisForm(parent=self, **kwargs)
-        self.analysis_list = [*self.analysis_list, new_analysis]
-        return new_analysis
+        new_analysis = Analysis(**kwargs)
+        form_analysis = AnalysisForm(parent=self, analysis=new_analysis)
+        self.analysis_list = [*self.analysis_list, form_analysis]
+        return form_analysis
 
     def do_search(self, event):
         logging.info("[+] Obteniendo resultados de busqueda ...")
@@ -1330,8 +1454,9 @@ class SeriesForm(param.Parameterized):
 
         df_serie = None
 
-        #df_serie = self._get_selected_data_source().get_data_serie(serie_id, rename_column=serie_id)
+        df_serie = self._get_selected_data_source().get_data_serie(serie_id, rename_column=serie_id)
 
+        """
         if self.search_source.value == 'fred':
             df_serie = self.fred_source.get_data_serie(serie_id, rename_column=serie_id)
         elif self.search_source.value == 'quandl':
@@ -1348,6 +1473,8 @@ class SeriesForm(param.Parameterized):
             df_serie = df_serie.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
 
         df_serie.loc[:, "{}_{}".format(serie_id, 'base')] = 1
+        """
+
         # df_serie.fillna(method='ffill', inplace=True)
 
         # Get Data and Join data
@@ -1405,7 +1532,7 @@ class SeriesForm(param.Parameterized):
 
         for a in self.analysis_list:
             panel = a.panel()
-            tuplas.append((a.analysis_name, panel))
+            tuplas.append((a.analysis.name, panel))
 
         self.tabs = pn.Tabs(*tuplas, closable=True)
 
@@ -1455,8 +1582,9 @@ class SeriesForm(param.Parameterized):
 # ******************************************** Create Figures *************************************
 logging.info("[+] Renderizando informacion...")
 
-series_form = SeriesForm()
+series_form = SeriesForm(manager=manager)
 
+"""
 for k in analisis_dict.keys():
     series = analisis_dict[k]['series']
 
@@ -1470,7 +1598,7 @@ for k in analisis_dict.keys():
     for s in series:
         # print(s)
         current_analysis.add_chart(s)
-
+"""
 
 alerts = pn.Row(pn.panel(series_form.get_alerts, width=300))
 container = pn.Row(pn.panel(series_form.get_tabs, width=300))
