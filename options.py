@@ -1,5 +1,6 @@
 from scipy.stats import norm, mvn
 import numpy as np
+import datetime
 
 def black_scholes(call_put_flag, s, x, t, r, v):
     d1 = (np.log(np.divide(s, x)) + (r + np.power(v, 2) / 2) * t) / (v * np.sqrt(t))
@@ -163,6 +164,15 @@ def BSAmericanCallApprox2002(s, x, t, r, b, v):
 
     return value
 
+"""
+###################### Parameters ##############################
+s: Stock Price
+x: Strike price of option
+r: Risk-free interest rate
+t: Time to expiration in years
+b: 
+v: 
+"""
 def BSAmericanApprox2002(call_put_flag, s, x, t, r, b, v):
     if call_put_flag == 'c':
         return BSAmericanCallApprox2002(s, x, t, r, b, v)
@@ -170,6 +180,27 @@ def BSAmericanApprox2002(call_put_flag, s, x, t, r, b, v):
         return BSAmericanCallApprox2002(x, s, t, r - b, -b, v)
 
 
+contracts = 1153
+prime = 0.74
+inversion = prime * contracts * 100
+print("Option Prime: ", prime)
+print("Inversion: {:,.2f}".format(inversion))
+print("#######################################################################")
+
+maturity = (datetime.date(2023, 1, 19) - datetime.date.today()).days / 365
+valuacion = BSAmericanApprox2002('c', 365, 570, maturity, 0.01, 0, 0.1994)
+inversion_c1 = valuacion * contracts * 100
+print("Option Prime", valuacion)
+print("Retorno: ${:,.2f}".format(inversion_c1 - inversion))
+print("#######################################################################")
+
+maturity = (datetime.date(2023, 1, 19) - datetime.date(2022, 3, 2)).days / 365
+valuacion = BSAmericanApprox2002('c', 420, 570, maturity, 0.01, 0, 0.23)
+inversion_c2 = valuacion * contracts * 100
+print("Option Prime", valuacion)
+print("Retorno: ${:,.2f}".format(inversion_c2 - inversion))
+
+"""
 var = BSAmericanCallApprox(42, 40, 0.75, 0.04, -0.04, 0.35)
 print(var)
 
@@ -205,3 +236,4 @@ print(var)
 print("******************************")
 var = BSAmericanApprox2002('c', 28.884999, 42.5, 763/365, 0.01, 0, 0.3743)
 print(var)
+"""

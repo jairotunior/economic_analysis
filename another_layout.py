@@ -444,7 +444,6 @@ class ManagerSources:
     def get_sources_names(self):
         return self.sources.keys()
 
-
 class Serie:
     def __init__(self, **kwargs):
         self.serie_id = kwargs.pop('serie_id', None)
@@ -486,7 +485,8 @@ class Serie:
 class Analysis:
     def __init__(self, **kwargs):
         self.name = kwargs.pop('analysis_name', "Default{}".format(str(random.randint(0, 1000))))
-        self.series = kwargs.pop('series', [])
+        self.series = kwargs.pop('series', []) # A list with Serie Object
+        self.series_data = kwargs.pop('series_data', []) # A list dictionary with the serie info
         self.df = kwargs.pop('df', None)
         self.manager = kwargs.pop('manager', None)
 
@@ -498,8 +498,12 @@ class Analysis:
             self.x_data_range = DataRange1d(start=self.start_date, end=self.end_date)
             self.data_source = ColumnDataSource(self.df)
 
+        if len(self.series_data) > 0:
+            self._load_initial_data()
+            self.update_data_source()
+
     def save(self):
-        logging.info("[+] Guardando analisis: {}".format(self.analysis_name))
+        logging.info("[+] Guardando analisis: {}".format(self.name))
 
         df = None
 
@@ -511,13 +515,75 @@ class Analysis:
 
             df = df.append(data, ignore_index=True)
 
-        df.to_pickle(os.path.join(self.manager.path, "{}.pkl".format(self.analysis_name)))
+        df.to_pickle(os.path.join(self.manager.path, "{}.pkl".format(self.name)))
         logging.debug("[+] Se ha guardado exitosamente")
 
     def add_serie(self, **kwargs):
+        #self._get_data(**kwargs)
+
         new_serie = Serie(analysis=self, **kwargs)
         self.series.append(new_serie)
         return new_serie
+
+    def _load_initial_data(self):
+        list_df_analisis = []
+
+        for s in self.series_data:
+            serie_id = s['serie_id']
+            source = s['source']
+
+            current_source = self.manager.sources.get_source_by_name(name=source)
+            df = current_source.get_data_serie(serie_id, rename_column=serie_id)
+            list_df_analisis.append(df)
+
+        df_aux = pd.concat(list_df_analisis, axis=1)
+        # df_aux.fillna(method='ffill', inplace=True)
+
+        columns = [c for c in df_aux.columns if not re.search("_base$", c)]
+        df_aux.loc[:, columns] = df_aux[columns].fillna(method='ffill')
+        # df_aux[columns].fillna(method='ffill', inplace=True)
+
+        df_aux = df_aux.reset_index()
+
+        self.df = df_aux
+        self.start_date = self.df.date.min()
+        self.end_date = self.df.date.max()
+        self.x_data_range = DataRange1d(start=self.start_date, end=self.end_date)
+        self.data_source = ColumnDataSource(self.df)
+
+        for s in self.series_data:
+            new_serie = Serie(analysis=self, **s)
+            self.series.append(new_serie)
+
+
+    def _get_data(self, **kwargs):
+        serie_id = kwargs.get('serie_id')
+        source = kwargs.get('source')
+
+        current_source = self.manager.sources.get_source_by_name(name=source)
+        df_serie = current_source.get_data_serie(serie_id, rename_column=serie_id)
+
+        df = None
+
+        if self.df is None:
+            df = df_serie.reset_index()
+            self.df = df
+            self.data_source = ColumnDataSource(self.df)
+        else:
+            df = self.df
+            if not serie_id in df.columns:
+                if 'date' in df.columns:
+                    df = df.set_index('date')
+                    df = pd.concat([df, df_serie], axis=1)
+
+                    columns = [c for c in df.columns if not re.search("_base$", c)]
+                    df.loc[:, columns] = df[columns].fillna(method='ffill')
+                    df = df.reset_index()
+
+                    self.df = df
+                    self.data_source.data = self.df
+                else:
+                    raise NotImplementedError("No existe la columns fecha.")
 
     def update_data_source(self):
         # print("**** Analysis Update Data Source *****")
@@ -526,33 +592,40 @@ class Analysis:
 
         for c in self.series:
             column_name = c.column
-            # print("** Analysis Processing Variable: ", c.select_processing_2)
             serie_id = c.serie_id
-            # print("** Analysis Serie: ", serie_id)
 
-            without_transformation = False
+            if df is None:
+                source = c.source
+                current_source = self.manager.sources.get_source_by_name(name=source)
+                df = current_source.get_data_serie(serie_id, rename_column=serie_id)
+                modification = True
+            else:
+                without_transformation = False
 
-            for ot in self.manager.transformers.get_transformer_all():
-                if "{}{}".format(serie_id, ot.suffix) == column_name:
-                    if not column_name in df.columns:
-                        mask = df['{}_base'.format(serie_id)] == 1
+                for ot in self.manager.transformers.get_transformer_all():
+                    if "{}{}".format(serie_id, ot.suffix) == column_name:
+                        if not column_name in df.columns:
+                            mask = df['{}_base'.format(serie_id)] == 1
 
-                        df.loc[mask, column_name] = ot.transform(series=df.loc[mask][serie_id])
+                            df.loc[mask, column_name] = ot.transform(series=df.loc[mask][serie_id])
 
-                        columns = [c for c in df.columns if not re.search("_base$", c)]
-                        df.loc[:, columns] = df[columns].fillna(method='ffill')
+                            columns = [c for c in df.columns if not re.search("_base$", c)]
+                            df.loc[:, columns] = df[columns].fillna(method='ffill')
 
-                        modification = True
-                    without_transformation = True
+                            modification = True
+                        without_transformation = True
 
-            if without_transformation:
-                c.column = serie_id
-                c.units_show = c.units
+                if without_transformation:
+                    c.column = serie_id
+                    c.units_show = c.units
 
         if modification:
             print("*** Analysis Updated DataSource ***")
             self.df = df
-            self.data_source.data = self.df
+            if self.data_source is None:
+                self.data_source = ColumnDataSource(self.df)
+            else:
+                self.data_source.data = self.df
 
 
 class ManagerAnalysis:
@@ -580,6 +653,11 @@ class ManagerData:
 
     def load(self):
         self._load_analysis()
+
+    def add_analysis(self, **kwargs):
+        new_analysis = Analysis(manager=self, **kwargs)
+        self.sources.register(new_analysis)
+        return new_analysis
 
     def _load_analysis(self):
         logging.info("[+] Cargando datos...")
@@ -612,73 +690,11 @@ class ManagerData:
                     # Add Info Series in List
                     list_series.append(serie_info)
 
-                    # Temporal Dataframe
-                    df = None
-
-                    current_source = self.sources.get_source_by_name(name=source)
-                    df = current_source.get_data_serie(serie_id, rename_column=serie_id)
-
-                    """
-                    # Es una funcion custom
-                    if source == 'file':
-                        df = file_source.get_data_serie(serie_id, rename_column=serie_id)
-                    elif source == 'fred':
-                        df = fred_source.get_data_serie(serie_id, rename_column=serie_id)
-
-                        serie_data = fred.search_for_series([serie_id], limit=20)
-
-                        if re.search('Daily*', serie_data['seriess'][0]['frequency']):
-                            # min_date = df.index.min()
-                            # max_date = df.index.max()
-                            # print(pd.date_range(start=min_date, end=max_date, freq=pd.offsets.MonthBegin(1)))
-                            df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
-                        elif re.search('Week*', serie_data['seriess'][0]['frequency']):
-                            df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
-
-                        df.loc[:, "{}_{}".format(serie_id, 'base')] = 1
-                    elif source == 'quandl':
-                        df = quandl_source.get_data_serie(serie_id, rename_column=serie_id)
-
-                        if re.search('Daily*', freq):
-                            # min_date = df.index.min()
-                            # max_date = df.index.max()
-                            # print(pd.date_range(start=min_date, end=max_date, freq=pd.offsets.MonthBegin(1)))
-                            df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
-                        elif re.search('Week*', freq):
-                            df = df.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
-
-                    if re.search("_pct12$", column):
-                        df.loc[:, "{}_pct12".format(serie_id)] = serie_pct_change(df, serie_id, periods=12)
-                        # df.drop(serie_id, axis=1, inplace=True)
-                    elif re.search("_pct1", column):
-                        df.loc[:, "{}_pct1".format(serie_id)] = serie_pct_change(df, serie_id, periods=1)
-                        # df.drop(serie_id, axis=1, inplace=True)
-                    
-                    """
-
-                    # df.fillna(method='ffill', inplace=True)
-                    list_df_analisis.append(df)
-
-                df_aux = pd.concat(list_df_analisis, axis=1)
-                # df_aux.fillna(method='ffill', inplace=True)
-
-                columns = [c for c in df.columns if not re.search("_base$", c)]
-
-                df_aux.loc[:, columns] = df_aux[columns].fillna(method='ffill')
-                # df_aux[columns].fillna(method='ffill', inplace=True)
-
-                df_aux = df_aux.reset_index()
-
                 # 2. Create Analysis Object
-                new_analysis = Analysis(analysis_name=name_analysis, manager=self, df=df_aux)
+                new_analysis = Analysis(analysis_name=name_analysis, manager=self, series_data=list_series)
 
-                # 3. Add Series to Analysis
-                for s in list_series:
-                    new_analysis.add_serie(**s)
-
-                # 4. Register Analysis
+                # 3. Register Analysis
                 self.analysis.register(new_analysis)
-
 
 # Define Manager
 manager = ManagerData(path=ANALYSIS_PATH)
@@ -1248,7 +1264,6 @@ class AnalysisForm(param.Parameterized):
     def _load(self):
         list_chart_form = []
         for s in self.analysis.series:
-            print(s.serie_id)
             chart_form = ChartForm(parent=self, serie=s)
             chart_form.select_processing_2.param.watch(self.update_view, 'value', precedence=1)
             list_chart_form.append(chart_form)
@@ -1258,8 +1273,13 @@ class AnalysisForm(param.Parameterized):
     def save_analysis(self, event):
         self.analysis.save()
 
-    def add_chart(self, s):
-        new_serie = self.analysis.add_serie(**s)
+    def add_chart(self, **kwargs):
+        serie_id = kwargs.get('serie_id')
+
+        # Update DataSource
+        new_serie = self.analysis.add_serie(**kwargs)
+
+        self.analysis.update_data_source()
 
         chart_form = ChartForm(parent=self, serie=new_serie)
         chart_form.select_processing_2.param.watch(self.update_view, 'value', precedence=1)
@@ -1324,9 +1344,6 @@ class AnalysisForm(param.Parameterized):
         #return self.data_source
         """
 
-    def update_data_source(self):
-        self.data_source.data = self.df
-
     def update_view(self, event):
         self.param.trigger('action_update_analysis')
 
@@ -1335,7 +1352,8 @@ class AnalysisForm(param.Parameterized):
         # print("***** Analysis View *********")
         # Arreglar esto aqui ya que al traer el dato modifica el datasource
         #self.data_source = self.get_data_source()
-        self.get_data_source()
+        #self.get_data_source()
+        self.analysis.update_data_source()
         return pn.GridBox(*[c.panel() for c in self.chart_forms], ncols=self.parent.plot_by_row)
 
     def panel(self):
@@ -1399,7 +1417,7 @@ class SeriesForm(param.Parameterized):
         return self.manager.sources.get_source_by_name(self.search_source.value)
 
     def add_analysis(self, **kwargs):
-        new_analysis = Analysis(**kwargs)
+        new_analysis = self.manager.add_analysis(**kwargs)
         form_analysis = AnalysisForm(parent=self, analysis=new_analysis)
         self.analysis_list = [*self.analysis_list, form_analysis]
         return form_analysis
@@ -1435,7 +1453,7 @@ class SeriesForm(param.Parameterized):
 
         self.param.trigger('action_update_tabs')
 
-    def _get_current_analysis(self):
+    def _get_current_analysis_form(self):
         return self.analysis_list[self.tabs.active]
 
     def add_serie_buttom(self, event):
@@ -1450,64 +1468,9 @@ class SeriesForm(param.Parameterized):
                 serie_data = {"serie_id": s['id'], "source": self.search_source.value, 'units': s['units'], 'freq': s['frequency'], 'serie_name': s['name'], 'column': s['id']}
                 break
 
-        current_analysis = self._get_current_analysis()
+        analysis_form = self._get_current_analysis_form()
 
-        df_serie = None
-
-        df_serie = self._get_selected_data_source().get_data_serie(serie_id, rename_column=serie_id)
-
-        """
-        if self.search_source.value == 'fred':
-            df_serie = self.fred_source.get_data_serie(serie_id, rename_column=serie_id)
-        elif self.search_source.value == 'quandl':
-            df_serie = self.quandl_source.get_data_serie(serie_id, rename_column=serie_id)
-        elif self.search_source.value == 'file':
-            df_serie = self.file_source.get_data_serie(serie_id, rename_column=serie_id)
-
-        if re.search('Daily*', serie_data['freq']):
-            #min_date = df_serie.index.min()
-            #max_date = df_serie.index.max()
-            # print(pd.date_range(start=min_date, end=max_date, freq=pd.offsets.MonthBegin(1)))
-            df_serie = df_serie.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
-        elif re.search('Week*', serie_data['freq']):
-            df_serie = df_serie.resample(pd.offsets.MonthBegin(1)).agg({serie_id: 'last'})
-
-        df_serie.loc[:, "{}_{}".format(serie_id, 'base')] = 1
-        """
-
-        # df_serie.fillna(method='ffill', inplace=True)
-
-        # Get Data and Join data
-        df = current_analysis.df
-
-        if 'date' in df.columns:
-            df = df.set_index('date')
-            df = pd.concat([df, df_serie], axis=1)
-        else:
-            df = df_serie
-
-        #df.fillna(method='ffill', inplace=True)
-
-        columns = [c for c in df.columns if not re.search("_base$", c)]
-
-        df.loc[:, columns] = df[columns].fillna(method='ffill')
-
-        df = df.reset_index()
-
-        # ********************* Set Dataset ******************************
-        current_analysis.df = df
-
-        # Update x_data_range
-        current_analysis.start_date = df.date.min()
-        current_analysis.end_date = df.date.max()
-
-        current_analysis.x_data_range = DataRange1d(start=df.date.min(), end=df.date.max())
-
-        # Update DataSource
-        current_analysis.update_data_source()
-
-        current_analysis.add_chart(serie_data)
-        # current_analysis.param.trigger('update_df_event')
+        analysis_form.add_chart(**serie_data)
 
         bootstrap.close_modal()
 

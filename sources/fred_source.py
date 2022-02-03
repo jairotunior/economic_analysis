@@ -59,8 +59,6 @@ class FREDSource(Source):
         if rename_column:
             data = data.rename(columns={'value': rename_column})
 
-        #return data
-
         serie_data = self.fred.search_for_series([serie_id], limit=20)
 
         if re.search('Daily*', serie_data['seriess'][0]['frequency']):
