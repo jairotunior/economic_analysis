@@ -42,6 +42,27 @@ class QuandlSource(Source):
             {"name": "5 YR Yield", "id": "QUS05Y", 'observation_start': "1/1/1990",
              'observation_end': datetime.date.today(), 'frequency': "Daily", 'units': "Percentage",
              'seasonal_adjustment': "", 'notes': '', 'quandl_id': 'USTREASURY/YIELD', 'quandl_column': '5 YR'},
+
+            {"name": "ISM - Services PMI Prices Index", "id": "ISM_NONMAN_PRICES", 'observation_start': "1/7/1997",
+             'observation_end': datetime.date.today(), 'frequency': "Monthly", 'units': "Index",
+             'seasonal_adjustment': "", 'notes': '', 'quandl_id': 'ISM/NONMAN_PRICES', 'quandl_column': 'Diffusion Index'},
+            {"name": "ISM - Services PMI Backlog of Orders Index", "id": "ISM_NONMAN_BACKLOG", 'observation_start': "1/7/1997",
+             'observation_end': datetime.date.today(), 'frequency': "Monthly", 'units': "Index",
+             'seasonal_adjustment': "", 'notes': '', 'quandl_id': 'ISM/NONMAN_BACKLOG', 'quandl_column': 'Diffusion Index'},
+            {"name": "ISM - Services PMI Business Activity Index", "id": "ISM_NONMAN_BUSACT",
+             'observation_start': "1/7/1997", 'observation_end': datetime.date.today(), 'frequency': "Monthly", 'units': "Index",
+             'seasonal_adjustment': "", 'notes': '', 'quandl_id': 'ISM/NONMAN_BUSACT', 'quandl_column': 'Diffusion Index'},
+
+            {"name": "ISM - PMI Composite Prices Index", "id": "ISM_MAN_PMI", 'observation_start': "1/1/1948",
+             'observation_end': datetime.date.today(), 'frequency': "Monthly", 'units': "Index",
+             'seasonal_adjustment': "", 'notes': '', 'quandl_id': 'ISM/MAN_PMI', 'quandl_column': 'Diffusion Index'},
+            {"name": "ISM - Services PMI Index (Formerly Non-Manufacturing)", "id": "ISM_NONMAN_NMI", 'observation_start': "1/1/2008",
+             'observation_end': datetime.date.today(), 'frequency': "Monthly", 'units': "Index",
+             'seasonal_adjustment': "", 'notes': '', 'quandl_id': 'ISM/NONMAN_NMI', 'quandl_column': '5 YR'},
+            {"name": "University of Michigan Consumer Survey,Index of Consumer Sentiment", "id": "UMICH_SOC1",
+             'observation_start': "1/11/1952",
+             'observation_end': datetime.date.today(), 'frequency': "Monthly", 'units': "Index",
+             'seasonal_adjustment': "", 'notes': '', 'quandl_id': 'UMICH/SOC1', 'quandl_column': '5 YR'},
         ]
 
         self.search_result = []
@@ -63,6 +84,8 @@ class QuandlSource(Source):
 
         df = quandl.get(quandl_id)
         df.index.name = 'date'
+
+        print(df.columns)
 
         if columns:
             for c in columns:

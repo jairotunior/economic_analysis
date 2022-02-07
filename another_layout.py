@@ -463,6 +463,7 @@ class Serie:
         for t in self.manager.transformers.get_transformer_all():
             if t.name == transform_name:
                 self.column = "{}{}".format(self.serie_id, t.suffix)
+                print(t.name, self.column)
                 self.units_show = t.units_show
                 is_updated = True
 
@@ -560,18 +561,22 @@ class Analysis:
         serie_id = kwargs.get('serie_id')
         source = kwargs.get('source')
 
-        current_source = self.manager.sources.get_source_by_name(name=source)
-        df_serie = current_source.get_data_serie(serie_id, rename_column=serie_id)
-
-        df = None
-
         if self.df is None:
+            current_source = self.manager.sources.get_source_by_name(name=source)
+            df_serie = current_source.get_data_serie(serie_id, rename_column=serie_id)
+
             df = df_serie.reset_index()
             self.df = df
+            self.start_date = self.df.date.min()
+            self.end_date = self.df.date.max()
+            self.x_data_range = DataRange1d(start=self.start_date, end=self.end_date)
             self.data_source = ColumnDataSource(self.df)
         else:
             df = self.df
             if not serie_id in df.columns:
+                current_source = self.manager.sources.get_source_by_name(name=source)
+                df_serie = current_source.get_data_serie(serie_id, rename_column=serie_id)
+
                 if 'date' in df.columns:
                     df = df.set_index('date')
                     df = pd.concat([df, df_serie], axis=1)
@@ -581,6 +586,9 @@ class Analysis:
                     df = df.reset_index()
 
                     self.df = df
+                    self.start_date = self.df.date.min()
+                    self.end_date = self.df.date.max()
+                    self.x_data_range = DataRange1d(start=self.start_date, end=self.end_date)
                     self.data_source.data = self.df
                 else:
                     raise NotImplementedError("No existe la columns fecha.")
@@ -594,30 +602,20 @@ class Analysis:
             column_name = c.column
             serie_id = c.serie_id
 
-            if df is None:
-                source = c.source
-                current_source = self.manager.sources.get_source_by_name(name=source)
-                df = current_source.get_data_serie(serie_id, rename_column=serie_id)
-                modification = True
-            else:
-                without_transformation = False
+            # Descarga la informacion que se necesaria
+            self._get_data(serie_id=c.serie_id, source=c.source)
 
-                for ot in self.manager.transformers.get_transformer_all():
-                    if "{}{}".format(serie_id, ot.suffix) == column_name:
-                        if not column_name in df.columns:
-                            mask = df['{}_base'.format(serie_id)] == 1
+            for ot in self.manager.transformers.get_transformer_all():
+                if "{}{}".format(serie_id, ot.suffix) == column_name:
+                    if not column_name in df.columns:
+                        mask = df['{}_base'.format(serie_id)] == 1
 
-                            df.loc[mask, column_name] = ot.transform(series=df.loc[mask][serie_id])
+                        df.loc[mask, column_name] = ot.transform(series=df.loc[mask][serie_id])
 
-                            columns = [c for c in df.columns if not re.search("_base$", c)]
-                            df.loc[:, columns] = df[columns].fillna(method='ffill')
+                        columns = [c for c in df.columns if not re.search("_base$", c)]
+                        df.loc[:, columns] = df[columns].fillna(method='ffill')
 
-                            modification = True
-                        without_transformation = True
-
-                if without_transformation:
-                    c.column = serie_id
-                    c.units_show = c.units
+                        modification = True
 
         if modification:
             print("*** Analysis Updated DataSource ***")
@@ -1040,7 +1038,6 @@ def add_chairman_fed(fig):
         fig.add_layout(c)
         toggle_chairman.js_link('active', c, 'visible')
 
-
 def add_qe(fig):
     df_qe = pd.DataFrame(data={"name": ['QE1', 'QE2', 'QE3 - Operation Twist', "QE4", 'QE5', 'QECovid'],
                                 "start": ['25/11/2008', '3/11/2010', '21/9/2012', '2/1/2013', '11/10/2019', '15/3/2020'],
@@ -1274,7 +1271,7 @@ class AnalysisForm(param.Parameterized):
         self.analysis.save()
 
     def add_chart(self, **kwargs):
-        serie_id = kwargs.get('serie_id')
+        #serie_id = kwargs.get('serie_id')
 
         # Update DataSource
         new_serie = self.analysis.add_serie(**kwargs)
