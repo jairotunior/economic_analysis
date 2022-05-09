@@ -10,9 +10,9 @@ The data sources integrated are:
 
 ## Screenshots
 
-![alt text](./screenshots/screenshot1.png)
+![alt text](./screenshots/Screenshot1.png)
 
-![alt text](./screenshots/screenshot2.png)
+![alt text](./screenshots/Screenshot2.png)
 
 ## Getting Started
 
